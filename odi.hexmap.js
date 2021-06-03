@@ -194,9 +194,9 @@
 		};
 		
 		function setClip(h){
-			sty = getComputedStyle(h.hex);
-			s = {};
-			if(sty['transform']) s.transform = sty['transform'];
+			var sty = getComputedStyle(h.hex);
+			var s = {};
+			if(sty.transform) s.transform = sty.transform;
 			if(s.transform=="none") s.transform = "";
 			if(sty['transform-origin']) s['transform-origin'] = sty['transform-origin'];
 			setAttr(h.clip,s);
@@ -222,10 +222,10 @@
 
 		this.regionToggleSelected = function(r,others){
 			this.selected = (this.selected==r) ? "" : r;
-			var h = this.areas[r];
+			var region,h;
+			h = this.areas[r];
 			h.selected = !h.selected;
 			this.setHexStyle(r);
-			var region;
 
 			// If we've deselected a region, deselect any other regions selected
 			if(!h.selected){
@@ -242,8 +242,7 @@
 		};
 
 		this.regionFocus = function(r){
-			var h = this.areas[r];
-			h.hover = true;
+			this.areas[r].hover = true;
 			this.el.querySelectorAll('.hover').forEach(function(el){ el.classList.remove('hover'); });
 			this.setHexStyle(r);
 			this.toFront(r);
@@ -251,41 +250,35 @@
 		};
 
 		this.regionBlur = function(r){
-			var h = this.areas[r];
-			h.hover = false;
+			this.areas[r].hover = false;
 			this.setHexStyle(r);
 			return this;
 		};
 
 		this.regionActivate = function(r){
-			var h = this.areas[r];
-			h.active = true;
+			this.areas[r].active = true;
 			this.setHexStyle(r);
 		};
 
 		this.regionDeactivate = function(r){
-			var h = this.areas[r];
-			h.active = false;
+			this.areas[r].active = false;
 			this.setHexStyle(r);
 		};
 
 		this.regionToggleActive = function(r){
-			var h = this.areas[r];
-			h.active = !h.active;
+			this.areas[r].active = !this.areas[r].active;
 			this.setHexStyle(r);
 		};
 
 		this.selectRegion = function(r){
 			this.selected = r;
-			var h;
 			for(var region in this.areas){
 				if(this.areas[region]){
-					h = this.areas[region];
 					if(r.length > 0 && region.indexOf(r)==0){
-						h.selected = true;
+						this.areas[region].selected = true;
 						this.setHexStyle(region);
 					}else{
-						h.selected = false;
+						this.areas[region].selected = false;
 						this.setHexStyle(region);
 					}
 				}
@@ -350,11 +343,12 @@
 		};
 
 		this.setMapping = function(mapping){
+			var region,p,q,r;
 			this.mapping = mapping;
 			if(!this.properties) this.properties = { "x": 100, "y": 100 };
 			this.properties.x = wide/2;
 			this.properties.y = tall/2;
-			var p = mapping.layout.split("-");
+			p = mapping.layout.split("-");
 			this.properties.shift = p[0];
 			this.properties.orientation = p[1];
 			
@@ -443,7 +437,7 @@
 		};
 		
 		this.draw = function(){			
-			var r,q,h,qp,rp;
+			var r,q,h,qp,rp,hex;
 
 			// q,r coordinate of the centre of the range
 			qp = (range.q.max+range.q.min)/2;
@@ -486,12 +480,13 @@
 				add(this.grid,svg);
 			}
 
-			var min = 50000;
-			var max = 80000;
+			var min,max,_obj,defs,path,label,hexclip;
+			min = 50000;
+			max = 80000;
 			this.values = {};
-			var _obj = this;
-			var path,label;
-			var defs = svgEl('defs');
+			_obj = this;
+			path,label;
+			defs = svgEl('defs');
 			add(defs,svg);
 
 			for(r in this.mapping.hexes){
@@ -505,7 +500,7 @@
 					if(!constructed){
 						path = svgEl('path');
 						path.innerHTML = '<title>'+(this.mapping.hexes[r].n || r)+'</title>';
-						setAttr(path,{'d':h.path,'class':'hex-cell','transform-origin':h.x+'px '+h.y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'id':'hex-'+region});
+						setAttr(path,{'d':h.path,'class':'hex-cell','transform-origin':h.x+'px '+h.y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'id':'hex-'+r});
 						svg.appendChild(path);
 						this.areas[r] = {'hex':path,'selected':false,'active':true};
 
