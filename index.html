@@ -98,7 +98,7 @@
 	</header>
 	<div class="padded">
 		<div class="holder">
-			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> (22kB; 14kB minified) is our Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
+			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> (22kB; 14kB minified; 5kB minified+gzipped) is our Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
 			
 
 			<section class="example" id="ex1">
@@ -106,9 +106,12 @@
 				<p>We load in the layout for UK constituencies, load in House of Commons petition data (2017-2019), and colour the hexes depending on the total signature count.</p>
 				<div class="example-code">
 					<style>
-					#hexmap1 { height: 720px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
-					#hexmap1 .hex-cell { stroke-width: 1; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
-					#hexmap1 .hex-cell.hover { stroke: black; stroke-width: 4px; }
+					#hexmap1 { height: 1000px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
+					#hexmap1 .hex-cell { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
+					#hexmap1 .hex-cell.hover { stroke-width: 4px; }
+					@media only screen and (max-width: 700px) {
+						#hexmap1 .hex-label { display: none; }
+					}
 					</style>
 					<div id="hexmap1"></div>
 					<script>
@@ -138,39 +141,26 @@
 					viridis = new ColourScale([{'rgb':[68,1,84],v:0},{'rgb':[72,35,116],'v':0.1},{'rgb':[64,67,135],'v':0.2},{'rgb':[52,94,141],'v':0.3},{'rgb':[41,120,142],'v':0.4},{'rgb':[32,143,140],'v':0.5},{'rgb':[34,167,132],'v':0.6},{'rgb':[66,190,113],'v':0.7},{'rgb':[121,209,81],'v':0.8},{'rgb':[186,222,39],'v':0.9},{'rgb':[253,231,36],'v':1}]);
 					ODI.ready(function(){
 						hex = ODI.hexmap(document.getElementById('hexmap1'),{
-							'file':'https://odileeds.github.io/hexmaps/maps/constituencies.hexjson',
+							'file':'https://odileeds.github.io/hexmaps/maps/constituencies.hexjson',	// The HexJSON layout
 							'ready':function(){
-								ODI.ajax('resources/2017-9.csv',{
+								// Once we have the map we will load the data
+								ODI.ajax('resources/2017-9.json',{
 									'this': this,
-									'dataType':'text',
-									'success':function(d){
-										var c,v,min,max,data,i;
-										min = 1e100;
-										max = -1e100;
-										if(typeof d==="string"){
-											d = d.replace(/\r/g,'');
-											d = d.split(/[\n]/);
-										}
-										data = {};
-										for(i = 1; i < d.length; i++){
-											c = d[i].split(/,/);
-											v = parseFloat(c[1]);
-											if(!isNaN(v)){
-												data[c[0]] = v;
-												min = Math.min(v,min);
-												max = Math.max(v,max);
-											}
+									'dataType':'json',
+									'success':function(data){
+										// Process the data file to find the minimum and maximum
+										var min = 1e100;
+										var max = -1e100;
+										for(var r in data){
+											min = Math.min(data[r],min);
+											max = Math.max(data[r],max);
 										}
 										// Update the hex colours
 										this.updateColours(function(r){ return viridis.get(data[r],min,max); });
 									},
-									'error':function(e,attr){
-										this.log('ERROR','Unable to load ',attr.url,attr);
-									}
+									'error':function(e,attr){ this.log('ERROR','Unable to load ',attr.url,attr); }
 								});
 							}
-						}).on('click',function(e){
-							console.log('click',e);
 						})
 
 					});
