@@ -141,9 +141,11 @@
 					viridis = new ColourScale([{'rgb':[68,1,84],v:0},{'rgb':[72,35,116],'v':0.1},{'rgb':[64,67,135],'v':0.2},{'rgb':[52,94,141],'v':0.3},{'rgb':[41,120,142],'v':0.4},{'rgb':[32,143,140],'v':0.5},{'rgb':[34,167,132],'v':0.6},{'rgb':[66,190,113],'v':0.7},{'rgb':[121,209,81],'v':0.8},{'rgb':[186,222,39],'v':0.9},{'rgb':[253,231,36],'v':1}]);
 					ODI.ready(function(){
 						hex = ODI.hexmap(document.getElementById('hexmap1'),{
-							'file':'https://odileeds.github.io/hexmaps/maps/constituencies.hexjson',	// The HexJSON layout
+							// The HexJSON layout
+							'file':'https://odileeds.github.io/hexmaps/maps/constituencies.hexjson',
+							// A callback function once we've loaded the map
 							'ready':function(){
-								// Once we have the map we will load the data
+								// Load the data
 								ODI.ajax('resources/2017-9.json',{
 									'this': this,
 									'dataType':'json',
@@ -161,8 +163,7 @@
 									'error':function(e,attr){ this.log('ERROR','Unable to load ',attr.url,attr); }
 								});
 							}
-						})
-
+						});
 					});
 					</script>
 				</div>

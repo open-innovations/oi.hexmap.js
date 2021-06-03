@@ -104,8 +104,9 @@
 		}
 
 		this.options = {
+			'clip':(typeof attr.clip==="boolean" ? attr.clip : false),
 			'showgrid':(typeof attr.grid==="boolean" ? attr.grid : false),
-			'showlabel':(typeof attr.showlabel==="boolean" ? attr.showlabel : true),
+			'showlabel':(typeof attr.label==="boolean" ? attr.label : false),
 			'formatLabel': (typeof attr.formatLabel==="function" ? attr.formatLabel : function(txt,attr){ return txt.substr(0,3); }),
 			'minFontSize': (typeof attr.minFontSize==="number" ? attr.minFontSize : 4)
 		};
@@ -130,13 +131,10 @@
 		
 		this.setFontSize = function(s){
 			fs = s;
-			this.log('MESSAGE','setFontSize',fs);
 			this.style['default']['font-size'] = fs;
-
 			for(var r in this.areas){
 				if(this.areas[r].label) setAttr(this.areas[r].label,{'font-size':fs+'px'});
 			}
-
 			return this;
 		};
 		this.setHexSize = function(s){
@@ -200,20 +198,18 @@
 		};
 		
 		this.toFront = function(r){
-			this.log('INFO','toFront',r);
 			if(this.areas[r]){
 				// Simulate a change of z-index by moving elements to the end of the SVG
 				// Keep selected items on top
 				for(var region in this.areas){
 					if(this.areas[region].selected){
-						console.log(region);
 						add(this.areas[region].hex,svg);
-						add(this.areas[region].label,svg);
+						if(this.areas[region].label) add(this.areas[region].label,svg);
 					}
 				}
 				// Simulate a change of z-index by moving this element (hex and label) to the end of the SVG
 				add(this.areas[r].hex,svg);
-				add(this.areas[r].label,svg);
+				if(this.areas[r].label) add(this.areas[r].label,svg);
 			}
 			return this;
 		};
@@ -330,7 +326,6 @@
 		};
 
 		this.size = function(w,h){
-			this.log('INFO','size',w,h);
 			this.el.style.height = '';
 			this.el.style.width = '';
 			setAttr(el,{'style':''});
@@ -360,7 +355,6 @@
 		};
 
 		this.resize = function(){
-			console.log('resize',svg);
 			this.size();
 			return this;
 		};
@@ -413,7 +407,6 @@
 		};
 
 		this.setSize = function(size){
-			console.log('setSize')
 			if(size) this.properties.size = size;
 			this.properties.s = { 'cos': Math.round(10*this.properties.size*Math.sqrt(3)/2)/10, 'sin': this.properties.size*0.5 };
 			this.properties.s.c = this.properties.s.cos.toFixed(2);
@@ -459,7 +452,6 @@
 		};
 
 		this.updateColours = function(fn){
-			this.log('MESSAGE','updateColours',fn);
 			if(fn) attr.colours = fn;
 			if(!attr.colours) attr.colours = function(){ return this.style['default'].fill; };
 			for(var region in this.mapping.hexes){
@@ -469,65 +461,41 @@
 					this.setHexStyle(region);
 				}
 			}
-
 			return this;
 		};
 		
-		this.draw = function(){
-			console.log('draw',range,attr.size);
-			
-			var r,q,h,region;
+		this.draw = function(){			
+			var r,q,h,region,qp,rp;
 
 			// q,r coordinate of the centre of the range
-			var qp = (range.q.max+range.q.min)/2;
-			var rp = (range.r.max+range.r.min)/2;
+			qp = (range.q.max+range.q.min)/2;
+			rp = (range.r.max+range.r.min)/2;
 			
 			this.properties.x = (wide/2) - (this.properties.s.cos * 2 *qp);
 			this.properties.y = (tall/2) + (this.properties.s.sin * 3 *rp);
 
-			console.log(this.properties,wide,tall,this.properties.s);
-			
 			// Store this for use elsewhere
 			this.range = range;
 			
+			function ev(e,t){
+				if(e.data.hexmap.callback[t]){
+					for(var a in e.data.hexmap.callback[t].attr){
+						if(e.data.hexmap.callback[t].attr[a]) e.data[a] = e.data.hexmap.callback[t].attr[a];
+					}
+					if(typeof e.data.hexmap.callback[t].fn==="function") return e.data.hexmap.callback[t].fn.call(this,e);
+				}				
+			}
 			var events = {
-				'mouseover': function(e){
-					var t = 'mouseover';
-					e.data.hexmap.regionFocus(e.data.region);
-					if(e.data.hexmap.callback[t]){
-						for(var a in e.data.hexmap.callback[t].attr){
-							if(e.data.hexmap.callback[t].attr[a]) e.data[a] = e.data.hexmap.callback[t].attr[a];
-						}
-						if(typeof e.data.hexmap.callback[t].fn==="function") return e.data.hexmap.callback[t].fn.call(this,e);
-					}
-				},
-				'mouseout': function(e){
-					var t = 'mouseout';
-					if(e.data.hexmap.callback[t]){
-						for(var a in e.data.hexmap.callback[t].attr){
-							if(e.data.hexmap.callback[t].attr[a]) e.data[a] = e.data.hexmap.callback[t].attr[a];
-						}
-						if(typeof e.data.hexmap.callback[t].fn==="function") return e.data.hexmap.callback[t].fn.call(this,e);
-					}
-				},
-				'click': function(e){
-					var t = 'click';
-					e.data.hexmap.regionFocus(e.data.region);
-					if(e.data.hexmap.callback[t]){
-						for(var a in e.data.hexmap.callback[t].attr){
-							if(e.data.hexmap.callback[t].attr[a]) e.data[a] = e.data.hexmap.callback[t].attr[a];
-						}
-						if(typeof e.data.hexmap.callback[t].fn==="function") return e.data.hexmap.callback[t].fn.call(this,e);
-					}
-				}
+				'mouseover': function(e){ e.data.hexmap.regionFocus(e.data.region); ev(e,'mouseover'); },
+				'mouseout': function(e){ ev(e,'mouseout'); },
+				'click': function(e){ e.data.hexmap.regionFocus(e.data.region); ev(e,'click'); }
 			};
-			console.log('attr',attr)
-			if(attr.grid || attr.clip){
+			if(this.options.showgrid || this.options.clip){
 				this.grid = svgEl('g');
 				for(q = range.q.min-1; q <= range.q.max+1; q++){
 					for(r = range.r.min-1; r <= range.r.max+1; r++){
 						h = this.drawHex(q,r);
-						if(attr.grid){
+						if(this.options.showgrid){
 							hex = svgEl('path');
 							setAttr(hex,{'d':h.path,'class':'hex-grid','data-q':q,'data-r':r,'fill':(this.style.grid.fill||''),'fill-opacity':(this.style.grid['fill-opacity']||0.1),'stroke':(this.style.grid.stroke||'#aaa'),'stroke-opacity':(this.style.grid['stroke-opacity']||0.2)});
 							addEvent('mouseover',{type:'grid',hexmap:this,data:{'r':r,'q':q}},events.mouseover);
@@ -535,7 +503,7 @@
 							addEvent('click',{type:'grid',hexmap:this,region:region,me:_obj,data:{'r':r,'q':q}},events.click);
 							add(hex,this.grid);
 						}
-						if(attr.clip){
+						if(this.options.clip){
 							// Make all the clipping areas
 							clip = svgEl('clipPath');
 							clip.setAttribute('id','hex-clip-'+q+'-'+r);
@@ -565,7 +533,8 @@
 
 					if(!constructed){
 						path = svgEl('path');
-						setAttr(path,{'d':h.path,'class':'hex-cell','data-q':this.mapping.hexes[region].q,'data-r':this.mapping.hexes[region].r,'id':'hex-'+region,'aria-title':(this.mapping.hexes[region].n || region)});
+						path.innerHTML = '<title>'+(this.mapping.hexes[region].n || region)+'</title>';
+						setAttr(path,{'d':h.path,'class':'hex-cell','data-q':this.mapping.hexes[region].q,'data-r':this.mapping.hexes[region].r,'id':'hex-'+region});
 						svg.appendChild(path);
 						this.areas[region] = {'hex':path,'selected':false,'active':true};
 
