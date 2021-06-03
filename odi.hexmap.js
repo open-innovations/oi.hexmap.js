@@ -1,6 +1,6 @@
 /**
 	ODI Leeds hex map in SVG
-	Version 0.5
+	Version 0.5.1
  */
 (function(root){
 
@@ -44,12 +44,13 @@
 	//      width: the width of the SVG element created
 	//      height: the height of the SVG element created
 	//      padding: an integer number of hexes to leave as padding around the displayed map
-	//      showgrid: do we show the background grid?
+	//      grid: do we show the background grid?
+	//      clip: do we clip the text to the hex?
 	//      formatLabel: a function to format the hex label
 	//      size: the size of a hexagon in pixels
 	function HexMap(el,attr){
 
-		this.version = "0.5";
+		this.version = "0.5.1";
 		if(!attr) attr  = {};
 		this._attr = attr;
 		this.title = "ODI HexMap";
@@ -86,6 +87,7 @@
 		var aspectratio = wide/tall;
 		var constructed = false;
 		var svg;
+		var range = {};
 		var fs = 16;
 
 		this.areas = {};
@@ -144,7 +146,6 @@
 			this.setFontSize(s*0.4);
 			return this;
 		};
-		this.setHexSize(attr.size);
 
 		// Can load a file or a hexjson data structure
 		this.load = function(file,prop,fn){
@@ -383,17 +384,38 @@
 			if(!this.properties) this.properties = { "x": 100, "y": 100 };
 			this.properties.x = wide/2;
 			this.properties.y = tall/2;
-			this.setSize();
 			var p = mapping.layout.split("-");
 			this.properties.shift = p[0];
 			this.properties.orientation = p[1];
+			
+			range = { 'r': {'min':1e100,'max':-1e100}, 'q': {'min':1e100,'max':-1e100} };
+			for(region in this.mapping.hexes){
+				if(this.mapping.hexes[region]){
+					q = this.mapping.hexes[region].q;
+					r = this.mapping.hexes[region].r;
+					if(q > range.q.max) range.q.max = q;
+					if(q < range.q.min) range.q.min = q;
+					if(r > range.r.max) range.r.max = r;
+					if(r < range.r.min) range.r.min = r;
+				}
+			}
+			
+			// Add padding to range
+			range.q.min -= attr.padding;
+			range.q.max += attr.padding;
+			range.r.min -= attr.padding;
+			range.r.max += attr.padding;
+			
+			if(typeof attr.size!=="number") this.setHexSize(Math.round(Math.min(0.6*tall/(range.r.max-range.r.min),0.5*wide/(range.q.max-range.q.min))));
+			this.setSize();
 
 			return this.initialized();
 		};
 
 		this.setSize = function(size){
+			console.log('setSize')
 			if(size) this.properties.size = size;
-			this.properties.s = { 'cos': this.properties.size*Math.sqrt(3)/2, 'sin': this.properties.size*0.5 };
+			this.properties.s = { 'cos': Math.round(10*this.properties.size*Math.sqrt(3)/2)/10, 'sin': this.properties.size*0.5 };
 			this.properties.s.c = this.properties.s.cos.toFixed(2);
 			this.properties.s.s = this.properties.s.sin.toFixed(2);
 			return this;
@@ -452,34 +474,18 @@
 		};
 		
 		this.draw = function(){
-			console.log('draw');
-
+			console.log('draw',range,attr.size);
+			
 			var r,q,h,region;
 
-			var range = { 'r': {'min':1e100,'max':-1e100}, 'q': {'min':1e100,'max':-1e100} };
-			for(region in this.mapping.hexes){
-				if(this.mapping.hexes[region]){
-					q = this.mapping.hexes[region].q;
-					r = this.mapping.hexes[region].r;
-					if(q > range.q.max) range.q.max = q;
-					if(q < range.q.min) range.q.min = q;
-					if(r > range.r.max) range.r.max = r;
-					if(r < range.r.min) range.r.min = r;
-				}
-			}
-			
-			// Add padding to range
-			range.q.min -= attr.padding;
-			range.q.max += attr.padding;
-			range.r.min -= attr.padding;
-			range.r.max += attr.padding;
-		
 			// q,r coordinate of the centre of the range
 			var qp = (range.q.max+range.q.min)/2;
 			var rp = (range.r.max+range.r.min)/2;
 			
 			this.properties.x = (wide/2) - (this.properties.s.cos * 2 *qp);
 			this.properties.y = (tall/2) + (this.properties.s.sin * 3 *rp);
+
+			console.log(this.properties,wide,tall,this.properties.s);
 			
 			// Store this for use elsewhere
 			this.range = range;
@@ -515,22 +521,32 @@
 					}
 				}
 			};
-			
-			if(this.options.showgrid){
-				this.grid = [];
-			
-				for(q = range.q.min; q <= range.q.max; q++){
-					for(r = range.r.min; r <= range.r.max; r++){
+			console.log('attr',attr)
+			if(attr.grid || attr.clip){
+				this.grid = svgEl('g');
+				for(q = range.q.min-1; q <= range.q.max+1; q++){
+					for(r = range.r.min-1; r <= range.r.max+1; r++){
 						h = this.drawHex(q,r);
-						this.grid.push(this.paper.path(h.path).attr({'class':'hex-grid','data-q':q,'data-r':r,'fill':(this.style.grid.fill||''),'fill-opacity':(this.style.grid['fill-opacity']||0.1),'stroke':(this.style.grid.stroke||'#aaa'),'stroke-opacity':(this.style.grid['stroke-opacity']||0.2)}));
-						this.grid[this.grid.length-1].on('mouseover',{type:'grid',hexmap:this,data:{'r':r,'q':q}},events.mouseover)
-							.on('mouseout',{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.mouseout)
-							.on('click',{type:'grid',hexmap:this,region:region,me:_obj,data:{'r':r,'q':q}},events.click);
-							
-						// Make all the clipping areas
-						this.paper.clip({'path':h.path,'type':'path'}).attr({'id':'hex-clip-'+q+'-'+r});
+						if(attr.grid){
+							hex = svgEl('path');
+							setAttr(hex,{'d':h.path,'class':'hex-grid','data-q':q,'data-r':r,'fill':(this.style.grid.fill||''),'fill-opacity':(this.style.grid['fill-opacity']||0.1),'stroke':(this.style.grid.stroke||'#aaa'),'stroke-opacity':(this.style.grid['stroke-opacity']||0.2)});
+							addEvent('mouseover',{type:'grid',hexmap:this,data:{'r':r,'q':q}},events.mouseover);
+							addEvent('mouseout',{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.mouseout);
+							addEvent('click',{type:'grid',hexmap:this,region:region,me:_obj,data:{'r':r,'q':q}},events.click);
+							add(hex,this.grid);
+						}
+						if(attr.clip){
+							// Make all the clipping areas
+							clip = svgEl('clipPath');
+							clip.setAttribute('id','hex-clip-'+q+'-'+r);
+							hexclip = svgEl('path');
+							setAttr(hexclip,{'d':h.path});
+							add(hexclip,clip);
+							add(clip,this.grid);
+						}
 					}
 				}
+				add(this.grid,svg);
 			}
 
 			var min = 50000;
@@ -562,7 +578,7 @@
 							if(this.style['default']['font-size'] >= this.options.minFontSize){
 								label = svgEl('text');
 								label.innerHTML = this.options.formatLabel(this.mapping.hexes[region].n,{'size':this.properties.size,'font-size':this.style['default']['font-size']});
-								setAttr(label,{'x':h.x,'y':h.y+this.style['default']['font-size']/2,'id':'hex-'+region+'-label','clip-path':'hex-clip-'+this.mapping.hexes[region].q+'-'+this.mapping.hexes[region].r,'data-q':this.mapping.hexes[region].q,'data-r':this.mapping.hexes[region].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[region].n || region),'_region':region});
+								setAttr(label,{'x':h.x,'y':h.y,'id':'hex-'+region+'-label','dominant-baseline':'central','clip-path':'url(#hex-clip-'+this.mapping.hexes[region].q+'-'+this.mapping.hexes[region].r+')','data-q':this.mapping.hexes[region].q,'data-r':this.mapping.hexes[region].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[region].n || region),'_region':region});
 								svg.appendChild(label);
 								this.areas[region].label = label;
 								this.areas[region].labelprops = {x:h.x,y:h.y};
