@@ -1,3 +1,7 @@
+/**
+	ODI Leeds hex map in SVG
+	Version 0.5
+ */
 (function(root){
 
 	var ODI = root.ODI || {};
@@ -34,7 +38,6 @@
 	}
 	if(!ODI.ajax) ODI.ajax = AJAX;
 
-	// Display a hex map
 	// Input structure:
 	//    el: the element to attach to
 	//    attr: an object defining various parameters:
@@ -133,14 +136,14 @@
 			}
 
 			return this;
-		}
+		};
 		this.setHexSize = function(s){
 			if(typeof s!=="number") s = 10;
 			attr.size = s;
 			this.properties.size = s;
 			this.setFontSize(s*0.4);
 			return this;
-		}
+		};
 		this.setHexSize(attr.size);
 
 		// Can load a file or a hexjson data structure
@@ -329,8 +332,8 @@
 			this.log('INFO','size',w,h);
 			this.el.style.height = '';
 			this.el.style.width = '';
-			setAttr(el,{'style':''})
-			if(svg) setAttr(svg,{'width':0,'height':0})
+			setAttr(el,{'style':''});
+			if(svg) setAttr(svg,{'width':0,'height':0});
 			w = Math.min(maxw,el.offsetWidth);
 			this.el.style.height = (w/aspectratio)+'px';
 			this.el.style.width = w+'px';
@@ -339,7 +342,7 @@
 			// Create SVG container
 			if(!svg){
 				svg = svgEl('svg');
-				setAttr(svg,{'xmlns':ns,'version':'1.1','overflow':'visible','viewBox':(attr.viewBox||'0 0 '+w+' '+h),'style':'max-width:100%;','preserveAspectRatio':'xMinYMin meet','vector-effect':'non-scaling-stroke','overflow':'hidden'});
+				setAttr(svg,{'xmlns':ns,'version':'1.1','overflow':'hidden','viewBox':(attr.viewBox||'0 0 '+w+' '+h),'style':'max-width:100%;','preserveAspectRatio':'xMinYMin meet','vector-effect':'non-scaling-stroke'});
 				add(svg,this.el);
 			}
 			setAttr(svg,{'width':w,'height':h});
@@ -349,7 +352,6 @@
 			this.properties.size = attr.size*scale;
 			wide = w;
 			tall = h;
-			//this.transform = {'type':'scale','props':{x:w,y:h,cx:w,cy:h,r:w,'stroke-width':w}};
 			this.el.style.height = '';
 			this.el.style.width = '';
 

@@ -98,12 +98,12 @@
 	</header>
 	<div class="padded">
 		<div class="holder">
-			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> () is our Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
+			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> (22kB; 14kB minified) is our Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
 			
 
 			<section class="example" id="ex1">
-				<h2>Example 1 - basic</h2>
-				<p>This is a basic chart with one series.</p>
+				<h2>Example 1 - UK constituencies</h2>
+				<p>We load in the layout for UK constituencies, load in House of Commons petition data (2017-2019), and colour the hexes depending on the total signature count.</p>
 				<div class="example-code">
 					<style>
 					#hexmap1 { height: 720px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
@@ -112,29 +112,35 @@
 					</style>
 					<div id="hexmap1"></div>
 					<script>
-					// Define a function for returning a colour on the Viridis colour scale
-					function Viridis(v,min,max){
-						var s,n,c,a,b;
-						v = (v-min)/(max-min);
-						s = [{'rgb':[68,1,84],v:0},{'rgb':[72,35,116],'v':0.1},{'rgb':[64,67,135],'v':0.2},{'rgb':[52,94,141],'v':0.3},{'rgb':[41,120,142],'v':0.4},{'rgb':[32,143,140],'v':0.5},{'rgb':[34,167,132],'v':0.6},{'rgb':[66,190,113],'v':0.7},{'rgb':[121,209,81],'v':0.8},{'rgb':[186,222,39],'v':0.9},{'rgb':[253,231,36],'v':1}];
+					// Define a colour scale function
+					function ColourScale(c){
+						var s,n;
+						s = c;
 						n = s.length;
-						if(v<0) return 'rgb('+s[0].rgb.join(',')+')';
-						if(v>=1) return 'rgb('+s[n-1].rgb.join(',')+')';
-						for(c = 0; c < n-1; c++){
-							a = s[c];
-							b = s[c+1];
-							if(v >= a.v && v < b.v){
-								pc = Math.min(1,(v - a.v)/(b.v-a.v));
-								rgb = [Math.round(a.rgb[0] + (b.rgb[0]-a.rgb[0])*pc),Math.round(a.rgb[1] + (b.rgb[1]-a.rgb[1])*pc),Math.round(a.rgb[2] + (b.rgb[2]-a.rgb[2])*pc)];
-								return 'rgb('+rgb.join(',')+')';
+						this.get = function(v,min,max){
+							var c,a,b;
+							v = (v-min)/(max-min);
+							if(v<0) return 'rgb('+s[0].rgb.join(',')+')';
+							if(v>=1) return 'rgb('+s[n-1].rgb.join(',')+')';
+							for(c = 0; c < n-1; c++){
+								a = s[c];
+								b = s[c+1];
+								if(v >= a.v && v < b.v){
+									pc = Math.min(1,(v - a.v)/(b.v-a.v));
+									rgb = [Math.round(a.rgb[0] + (b.rgb[0]-a.rgb[0])*pc),Math.round(a.rgb[1] + (b.rgb[1]-a.rgb[1])*pc),Math.round(a.rgb[2] + (b.rgb[2]-a.rgb[2])*pc)];
+									return 'rgb('+rgb.join(',')+')';
+								}
 							}
-						}
+						};
+						return this;
 					}
+					// Define the Viridis colour scale
+					viridis = new ColourScale([{'rgb':[68,1,84],v:0},{'rgb':[72,35,116],'v':0.1},{'rgb':[64,67,135],'v':0.2},{'rgb':[52,94,141],'v':0.3},{'rgb':[41,120,142],'v':0.4},{'rgb':[32,143,140],'v':0.5},{'rgb':[34,167,132],'v':0.6},{'rgb':[66,190,113],'v':0.7},{'rgb':[121,209,81],'v':0.8},{'rgb':[186,222,39],'v':0.9},{'rgb':[253,231,36],'v':1}]);
 					ODI.ready(function(){
 						hex = ODI.hexmap(document.getElementById('hexmap1'),{
-							'file':'../hexmaps/maps/constituencies.hexjson',
+							'file':'https://odileeds.github.io/hexmaps/maps/constituencies.hexjson',
 							'ready':function(){
-								ODI.ajax('2017-9.csv',{
+								ODI.ajax('resources/2017-9.csv',{
 									'this': this,
 									'dataType':'text',
 									'success':function(d){
@@ -156,7 +162,7 @@
 											}
 										}
 										// Update the hex colours
-										this.updateColours(function(r){ return Viridis(data[r],min,max); });
+										this.updateColours(function(r){ return viridis.get(data[r],min,max); });
 									},
 									'error':function(e,attr){
 										this.log('ERROR','Unable to load ',attr.url,attr);
