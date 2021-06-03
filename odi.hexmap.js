@@ -1,6 +1,6 @@
 /**
 	ODI Leeds hex map in SVG
-	Version 0.5.1
+	Version 0.5.2
  */
 (function(root){
 
@@ -50,7 +50,7 @@
 	//      size: the size of a hexagon in pixels
 	function HexMap(el,attr){
 
-		this.version = "0.5.1";
+		this.version = "0.5.2";
 		if(!attr) attr  = {};
 		this._attr = attr;
 		this.title = "ODI HexMap";
@@ -152,9 +152,10 @@
 				prop = "";
 			}
 			//if(typeof fn !== "function") return this;
-			function done(data){
+			function done(data,noload){
 				_obj.log('INFO','HexJSON',data);
 				_obj.setMapping(data);
+				if(noload) _obj.updateColours();
 				if(typeof fn==="function") fn.call(_obj,{'data':prop});
 			}
 			if(typeof file==="string"){
@@ -165,20 +166,19 @@
 					'success': function(data){ done(data); },
 					'error': function(e,prop){ this.log('ERROR','Unable to load '+file,prop); }
 				});
-			}else if(typeof file==="object") done(file);
+			}else if(typeof file==="object") done(file,true);
 			return this;
 		};
 
 		var _obj = this;
 		// We'll need to change the sizes when the window changes size
-		window.addEventListener('resize', function(event){ _obj.resize(); });
+		window.addEventListener('resize', function(event){ _obj.size(); });
 
 		this.setHexStyle = function(r){
 			var h,style,cls,p;
 			h = this.areas[r];
 			style = clone(this.style['default']);
 			cls = "";
-
 			if(h.active) style.fill = h.fillcolour;
 			if(h.hover) cls += ' hover';
 			if(h.selected){
@@ -187,29 +187,35 @@
 				}
 				cls += ' selected';
 			}
-			//if(this.search.active) cls += (h.highlight) ? ' highlighted' : ' not-highlighted';
 			style['class'] = 'hex-cell'+cls;
-
 			setAttr(h.hex,style);
-
 			if(h.label) setAttr(h.label,{'class':'hex-label'+cls});
-
 			return h;
 		};
 		
-		this.toFront = function(r){
-			if(this.areas[r]){
+		function setClip(h){
+			sty = getComputedStyle(h.hex);
+			s = {};
+			if(sty['transform']) s.transform = sty['transform'];
+			if(s.transform=="none") s.transform = "";
+			if(sty['transform-origin']) s['transform-origin'] = sty['transform-origin'];
+			setAttr(h.clip,s);
+		}
+		
+		this.toFront = function(region){
+			if(this.areas[region]){
 				// Simulate a change of z-index by moving elements to the end of the SVG
 				// Keep selected items on top
-				for(var region in this.areas){
-					if(this.areas[region].selected){
-						add(this.areas[region].hex,svg);
-						if(this.areas[region].label) add(this.areas[region].label,svg);
+				for(var r in this.areas){
+					if(this.areas[r].selected){
+						add(this.areas[r].hex,svg);
+						if(this.areas[r].label) add(this.areas[r].label,svg);
 					}
+					if(this.options.clip) setClip(this.areas[r]);
 				}
 				// Simulate a change of z-index by moving this element (hex and label) to the end of the SVG
-				add(this.areas[r].hex,svg);
-				if(this.areas[r].label) add(this.areas[r].label,svg);
+				add(this.areas[region].hex,svg);
+				if(this.areas[region].label) add(this.areas[region].label,svg);
 			}
 			return this;
 		};
@@ -299,32 +305,6 @@
 			return this;
 		};
 
-		// Move the selected hex to the new coordinates
-		this.moveTo = function(q,r){
-			if(this.selected){
-				var dq = q - this.mapping.hexes[this.selected].q;
-				var dr = r - this.mapping.hexes[this.selected].r;
-
-				for(var region in this.areas){
-					if(this.areas[region]){
-						if(region.indexOf(this.selected)==0){
-							this.areas[region].selected = true;
-						}
-						if(this.areas[region].selected){
-							this.mapping.hexes[region].q += dq;
-							this.mapping.hexes[region].r += dr;
-							var h = this.drawHex(this.mapping.hexes[region].q,this.mapping.hexes[region].r);
-							this.areas[region].attr({'path':h.path}).update();
-							if(this.options.showlabel && this.areas[region].label) setAttr(this.areas[region].label,{'x':h.x,'y':h.y+this.style['default']['font-size']/2,'clip-path':'hex-clip-'+this.mapping.hexes[region].q+'-'+this.mapping.hexes[region].r});
-							this.areas[region].selected = false;
-							this.setHexStyle(region);
-						}
-					}
-				}
-				this.selected = "";
-			}
-		};
-
 		this.size = function(w,h){
 			this.el.style.height = '';
 			this.el.style.width = '';
@@ -338,7 +318,7 @@
 			// Create SVG container
 			if(!svg){
 				svg = svgEl('svg');
-				setAttr(svg,{'xmlns':ns,'version':'1.1','overflow':'hidden','viewBox':(attr.viewBox||'0 0 '+w+' '+h),'style':'max-width:100%;','preserveAspectRatio':'xMinYMin meet','vector-effect':'non-scaling-stroke'});
+				setAttr(svg,{'xmlns':ns,'version':'1.1','overflow':'visible','viewBox':(attr.viewBox||'0 0 '+w+' '+h),'style':'max-width:100%;','preserveAspectRatio':'xMinYMin meet','vector-effect':'non-scaling-stroke'});
 				add(svg,this.el);
 			}
 			setAttr(svg,{'width':w,'height':h});
@@ -354,11 +334,6 @@
 			return this;
 		};
 
-		this.resize = function(){
-			this.size();
-			return this;
-		};
-
 		this.initialized = function(){
 			this.create().draw();
 			var spin = el.querySelector('.spinner');
@@ -369,6 +344,7 @@
 		this.create = function(){
 			// Clear the canvas
 			svg.innerHTML = "";
+			this.areas = {};
 			constructed = false;
 			return this;
 		};
@@ -400,7 +376,7 @@
 			range.r.min -= attr.padding;
 			range.r.max += attr.padding;
 			
-			if(typeof attr.size!=="number") this.setHexSize(Math.round(Math.min(0.6*tall/(range.r.max-range.r.min),0.5*wide/(range.q.max-range.q.min))));
+			if(typeof attr.size!=="number") this.setHexSize(Math.round(Math.min(0.6*tall/(range.r.max-range.r.min+1),0.5*wide/(range.q.max-range.q.min+1))));
 			this.setSize();
 
 			return this.initialized();
@@ -452,20 +428,22 @@
 		};
 
 		this.updateColours = function(fn){
-			if(fn) attr.colours = fn;
-			if(!attr.colours) attr.colours = function(){ return this.style['default'].fill; };
-			for(var region in this.mapping.hexes){
-				if(this.mapping.hexes[region]){
-					if(typeof attr.colours==="string") this.areas[region].fillcolour = attr.colours;
-					else this.areas[region].fillcolour = attr.colours.call(this,region);
-					this.setHexStyle(region);
+			var r,fill;
+			for(r in this.mapping.hexes){
+				if(this.mapping.hexes[r]){
+					fill = this.style['default'].fill;
+					if(this.mapping.hexes[r].colour) fill = this.mapping.hexes[r].colour;					
+					if(typeof attr.colours==="string") fill = attr.colours;
+					if(typeof fn==="function") fill = fn.call(this,r);
+					this.areas[r].fillcolour = fill;
+					this.setHexStyle(r);
 				}
 			}
 			return this;
 		};
 		
 		this.draw = function(){			
-			var r,q,h,region,qp,rp;
+			var r,q,h,qp,rp;
 
 			// q,r coordinate of the centre of the range
 			qp = (range.q.max+range.q.min)/2;
@@ -490,7 +468,7 @@
 				'mouseout': function(e){ ev(e,'mouseout'); },
 				'click': function(e){ e.data.hexmap.regionFocus(e.data.region); ev(e,'click'); }
 			};
-			if(this.options.showgrid || this.options.clip){
+			if((this.options.showgrid || this.options.clip) && !this.grid){
 				this.grid = svgEl('g');
 				for(q = range.q.min-1; q <= range.q.max+1; q++){
 					for(r = range.r.min-1; r <= range.r.max+1; r++){
@@ -500,17 +478,8 @@
 							setAttr(hex,{'d':h.path,'class':'hex-grid','data-q':q,'data-r':r,'fill':(this.style.grid.fill||''),'fill-opacity':(this.style.grid['fill-opacity']||0.1),'stroke':(this.style.grid.stroke||'#aaa'),'stroke-opacity':(this.style.grid['stroke-opacity']||0.2)});
 							addEvent('mouseover',{type:'grid',hexmap:this,data:{'r':r,'q':q}},events.mouseover);
 							addEvent('mouseout',{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.mouseout);
-							addEvent('click',{type:'grid',hexmap:this,region:region,me:_obj,data:{'r':r,'q':q}},events.click);
+							addEvent('click',{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.click);
 							add(hex,this.grid);
-						}
-						if(this.options.clip){
-							// Make all the clipping areas
-							clip = svgEl('clipPath');
-							clip.setAttribute('id','hex-clip-'+q+'-'+r);
-							hexclip = svgEl('path');
-							setAttr(hexclip,{'d':h.path});
-							add(hexclip,clip);
-							add(clip,this.grid);
 						}
 					}
 				}
@@ -522,46 +491,57 @@
 			this.values = {};
 			var _obj = this;
 			var path,label;
+			var defs = svgEl('defs');
+			add(defs,svg);
 
-			for(region in this.mapping.hexes){
-				if(this.mapping.hexes[region]){
-					this.values[region] = (this.mapping.hexes[region].p - min)/(max-min);
-					if(this.values[region].value < 0) this.values[region] = 0;
-					if(this.values[region].value > 1) this.values[region] = 1;
+			for(r in this.mapping.hexes){
+				if(this.mapping.hexes[r]){
+					this.values[r] = (this.mapping.hexes[r].p - min)/(max-min);
+					if(this.values[r].value < 0) this.values[r] = 0;
+					if(this.values[r].value > 1) this.values[r] = 1;
 
-					h = this.drawHex(this.mapping.hexes[region].q,this.mapping.hexes[region].r);
+					h = this.drawHex(this.mapping.hexes[r].q,this.mapping.hexes[r].r);
 
 					if(!constructed){
 						path = svgEl('path');
-						path.innerHTML = '<title>'+(this.mapping.hexes[region].n || region)+'</title>';
-						setAttr(path,{'d':h.path,'class':'hex-cell','data-q':this.mapping.hexes[region].q,'data-r':this.mapping.hexes[region].r,'id':'hex-'+region});
+						path.innerHTML = '<title>'+(this.mapping.hexes[r].n || r)+'</title>';
+						setAttr(path,{'d':h.path,'class':'hex-cell','transform-origin':h.x+'px '+h.y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'id':'hex-'+region});
 						svg.appendChild(path);
-						this.areas[region] = {'hex':path,'selected':false,'active':true};
+						this.areas[r] = {'hex':path,'selected':false,'active':true};
 
 						// Attach events to our SVG hex nodes
-						addEvent('mouseover',path,{type:'hex',hexmap:this,region:region,data:this.mapping.hexes[region],pop:this.mapping.hexes[region].p},events.mouseover);
-						addEvent('mouseout',path,{type:'hex',hexmap:this,region:region,me:this.areas[region]},events.mouseout);
-						addEvent('click',path,{type:'hex',hexmap:this,region:region,me:this.areas[region],data:this.mapping.hexes[region]},events.click);
+						addEvent('mouseover',path,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r],pop:this.mapping.hexes[r].p},events.mouseover);
+						addEvent('mouseout',path,{type:'hex',hexmap:this,region:r,me:this.areas[r]},events.mouseout);
+						addEvent('click',path,{type:'hex',hexmap:this,region:r,me:this.areas[r],data:this.mapping.hexes[r]},events.click);
 
 						if(this.options.showlabel){
 							if(this.style['default']['font-size'] >= this.options.minFontSize){
+								if(this.options.clip){
+									// Make all the clipping areas
+									this.areas[r].clip = svgEl('clipPath');
+									this.areas[r].clip.setAttribute('id','hex-clip-'+r);
+									hexclip = svgEl('path');
+									setAttr(hexclip,{'d':h.path,'transform-origin':h.x+'px '+h.y+'px'});
+									add(hexclip,this.areas[r].clip);
+									add(this.areas[r].clip,defs);
+								}
 								label = svgEl('text');
-								label.innerHTML = this.options.formatLabel(this.mapping.hexes[region].n,{'size':this.properties.size,'font-size':this.style['default']['font-size']});
-								setAttr(label,{'x':h.x,'y':h.y,'id':'hex-'+region+'-label','dominant-baseline':'central','clip-path':'url(#hex-clip-'+this.mapping.hexes[region].q+'-'+this.mapping.hexes[region].r+')','data-q':this.mapping.hexes[region].q,'data-r':this.mapping.hexes[region].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[region].n || region),'_region':region});
+								label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':this.style['default']['font-size']});
+								setAttr(label,{'x':h.x,'y':h.y,'id':'hex-'+r+'-label','transform-origin':h.x+'px '+h.y+'px','dominant-baseline':'central','clip-path':'url(#hex-clip-'+r+')','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[r].n || r),'_region':r});
 								svg.appendChild(label);
-								this.areas[region].label = label;
-								this.areas[region].labelprops = {x:h.x,y:h.y};
+								this.areas[r].label = label;
+								this.areas[r].labelprops = {x:h.x,y:h.y};
 
 								// Attach events to our SVG label nodes
-								addEvent('mouseover',label,{type:'hex',hexmap:this,region:region,data:this.mapping.hexes[region],pop:this.mapping.hexes[region].p},events.mouseover);
-								addEvent('mouseout',label,{type:'hex',hexmap:this,region:region,me:this.areas[region]},events.mouseout);
-								addEvent('click',label,{type:'hex',hexmap:this,region:region,me:this.areas[region],data:this.mapping.hexes[region]},events.click);
+								addEvent('mouseover',label,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r],pop:this.mapping.hexes[r].p},events.mouseover);
+								addEvent('mouseout',label,{type:'hex',hexmap:this,region:r,me:this.areas[r]},events.mouseout);
+								addEvent('click',label,{type:'hex',hexmap:this,region:r,me:this.areas[r],data:this.mapping.hexes[r]},events.click);
 							}
 						}
 
 					}
-					this.setHexStyle(region);
-					setAttr(this.areas[region].hex,{'stroke':this.style['default'].stroke,'stroke-opacity':this.style['default']['stroke-opacity'],'stroke-width':this.style['default']['stroke-width'],'title':this.mapping.hexes[region].n,'data-regions':region,'style':'cursor: pointer;'});
+					this.setHexStyle(r);
+					setAttr(this.areas[r].hex,{'stroke':this.style['default'].stroke,'stroke-opacity':this.style['default']['stroke-opacity'],'stroke-width':this.style['default']['stroke-width'],'title':this.mapping.hexes[r].n,'data-regions':r,'style':'cursor: pointer;'});
 				}
 			}
 
@@ -569,21 +549,9 @@
 
 			return this;
 		};
-
-		this.selectBySameColour = function(){
-			if(this.selected){
-				for(var region in this.areas){
-					if(this.areas[region].fillcolour==this.areas[this.selected].fillcolour){
-						this.areas[region].selected = true;
-						this.setHexStyle(region);
-					}
-				}
-			}
-			return this;
-		};
 			
 		this.size();
-		if(attr.file) this.load(attr.file,attr.ready);
+		if(attr.hexjson) this.load(attr.hexjson,attr.ready);
 
 		return this;
 	

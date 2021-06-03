@@ -98,22 +98,98 @@
 	</header>
 	<div class="padded">
 		<div class="holder">
-			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> (22kB; 14kB minified; 5kB minified+gzipped) is our Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
+			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> (22kB; 14kB minified; 5kB minified+gzipped) is our standalone Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
 			
 
 			<section class="example" id="ex1">
-				<h2>Example 1 - UK constituencies</h2>
+				<h2>Example 1 - Leeds Wards</h2>
+				<p>We use a HexJSON layout for Leeds Wards which has precomputed colours for the hexes. We use CSS to scale the hexes and show extra text content on hover.</p>
+				<div class="example-code">
+					<style>
+					#hexmap1 { height: 500px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; background: #efefef; }
+					#hexmap1 .hex-cell { stroke: white; stroke-width: 2; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
+					#hexmap1 .hex-cell.hover { stroke-width: 4px; transform: scale(1.75); }
+					#hexmap1 .hex-label tspan.on { display: none; }
+					#hexmap1 .hex-label tspan.off { display: block; }
+					#hexmap1 .hex-label tspan.big { font-weight: bold; font-size: 1.2em; }
+					#hexmap1 .hex-label.hover tspan.on { display: block; }
+					#hexmap1 .hex-label.hover tspan.off { display: none; }
+					</style>
+					<div id="hexmap1"></div>
+					<script>
+					hex = ODI.hexmap(
+						// The DOM element to use
+						document.getElementById('hexmap1'),
+						{
+							'label':true,
+							'clip':true,
+							'formatLabel': function(txt,attr){
+								tspans = '<tspan class="off">'+txt.substr(0,3)+'</tspan>';
+								lines = txt.split(/ /);
+								lines.push(attr.hex.pop.toLocaleString());
+								for(var i = 0; i < lines.length; i++){
+									tspans += '<tspan class="on'+(i==lines.length-1 ? ' big':'')+'" y="'+(attr.y + (i-lines.length/2+0.5)*attr['font-size'])+'" x="'+attr.x+'">'+lines[i]+'</tspan>';
+								}
+								return tspans;
+							},
+							// The HexJSON layout
+							'hexjson':{
+								"layout":"odd-r",
+								"hexes": {
+									"E05001425":{"n":"Guiseley and Rawdon","id":"E05001425","name":"Guiseley and Rawdon","q":-3,"r":3,"pop":18253,"colour":"rgb(247, 171, 45)"},
+									"E05001437":{"n":"Otley and Yeadon","id":"E05001437","name":"Otley and Yeadon","q":-2,"r":3,"pop":17616,"colour":"rgb(246, 166, 47)"},
+									"E05001411":{"n":"Adel and Wharfedale","id":"E05001411","name":"Adel and Wharfedale","q":-1,"r":3,"pop":15919,"colour":"rgb(248, 186, 38)"},
+									"E05001412":{"n":"Alwoodley","id":"E05001412","name":"Alwoodley","q":0,"r":3,"pop":17890,"colour":"rgb(245, 150, 55)"},
+									"E05001426":{"n":"Harewood","id":"E05001426","name":"Harewood","q":1,"r":3,"pop":15194,"colour":"rgb(249, 188, 38)"},
+									"E05001443":{"n":"Wetherby","id":"E05001443","name":"Wetherby","q":2,"r":3,"pop":15753,"colour":"rgb(247, 172, 45)"},
+									"E05001428":{"n":"Horsforth","id":"E05001428","name":"Horsforth","q":-2,"r":2,"pop":17318,"colour":"rgb(247, 172, 45)"},
+									"E05001442":{"n":"Weetwood","id":"E05001442","name":"Weetwood","q":-1,"r":2,"pop":15777,"colour":"rgb(246, 160, 50)"},
+									"E05001434":{"n":"Moortown","id":"E05001434","name":"Moortown","q":0,"r":2,"pop":17595,"colour":"rgb(246, 161, 50)"},
+									"E05001440":{"n":"Roundhay","id":"E05001440","name":"Roundhay","q":1,"r":2,"pop":17419,"colour":"rgb(247, 170, 45)"},
+									"E05001418":{"n":"Calverley and Farsley","id":"E05001418","name":"Calverley and Farsley","q":-4,"r":1,"pop":18009,"colour":"rgb(245, 150, 54)"},
+									"E05001416":{"n":"Bramley and Stanningley","id":"E05001416","name":"Bramley and Stanningley","q":-3,"r":1,"pop":16582,"colour":"rgb(236, 61, 95)"},
+									"E05001432":{"n":"Kirkstall","id":"E05001432","name":"Kirkstall","q":-2,"r":1,"pop":15547,"colour":"rgb(239, 91, 82)"},
+									"E05001427":{"n":"Headingley and Hyde Park","id":"E05001427","name":"Headingley and Hyde Park","q":-1,"r":1,"pop":19339,"colour":"rgb(230, 9, 119)"},
+									"E05001419":{"n":"Chapel Allerton","id":"E05001419","name":"Chapel Allerton","q":0,"r":1,"pop":17792,"colour":"rgb(241, 117, 70)"},
+									"E05001430":{"n":"Killingbeck and Seacroft","id":"E05001430","name":"Killingbeck and Seacroft","q":1,"r":1,"pop":16467,"colour":"rgb(233, 36, 107)"},
+									"E05001438":{"n":"Pudsey","id":"E05001438","name":"Pudsey","q":-3,"r":0,"pop":18485,"colour":"rgb(244, 139, 60)"},
+									"E05001414":{"n":"Armley","id":"E05001414","name":"Armley","q":-2,"r":0,"pop":16270,"colour":"rgb(235, 54, 99)"},
+									"E05001429":{"n":"Little London and Woodhouse","id":"E05001429","name":"Little London and Woodhouse","q":-1,"r":0,"pop":14367,"colour":"rgb(230, 0, 124)"},
+									"E05001424":{"n":"Gipton and Harehills","id":"E05001424","name":"Gipton and Harehills","q":0,"r":0,"pop":16350,"colour":"rgb(235, 58, 97)"},
+									"E05001421":{"n":"Cross Gates and Whinmoor","id":"E05001421","name":"Cross Gates and Whinmoor","q":1,"r":0,"pop":17819,"colour":"rgb(239, 91, 81)"},
+									"E05001422":{"n":"Farnley and Wortley","id":"E05001422","name":"Farnley and Wortley","q":-3,"r":-1,"pop":17908,"colour":"rgb(237, 73, 90)"},
+									"E05001415":{"n":"Beeston and Holbeck","id":"E05001415","name":"Beeston and Holbeck","q":-2,"r":-1,"pop":15203,"colour":"rgb(235, 54, 98)"},
+									"E05001420":{"n":"Hunslet and Riverside","id":"E05001420","name":"Hunslet and Riverside","q":-1,"r":-1,"pop":17054,"colour":"rgb(236, 68, 92)"},
+									"E05001417":{"n":"Burmantofts and Richmond Hill","id":"E05001417","name":"Burmantofts and Richmond Hill","q":0,"r":-1,"pop":15522,"colour":"rgb(235, 52, 100)"},
+									"E05001441":{"n":"Temple Newsam","id":"E05001441","name":"Temple Newsam","q":1,"r":-1,"pop":16437,"colour":"rgb(240, 106, 75)"},
+									"E05001435":{"n":"Morley North","id":"E05001435","name":"Morley North","q":-2,"r":-2,"pop":17733,"colour":"rgb(241, 109, 73)"},
+									"E05001433":{"n":"Middleton Park","id":"E05001433","name":"Middleton Park","q":-1,"r":-2,"pop":19135,"colour":"rgb(234, 44, 103)"},
+									"E05001439":{"n":"Rothwell","id":"E05001439","name":"Rothwell","q":0,"r":-2,"pop":15889,"colour":"rgb(243, 133, 62)"},
+									"E05001423":{"n":"Garforth and Swillington","id":"E05001423","name":"Garforth and Swillington","q":1,"r":-2,"pop":16260,"colour":"rgb(247, 170, 45)"},
+									"E05001436":{"n":"Morley South","id":"E05001436","name":"Morley South","q":-2,"r":-3,"pop":16684,"colour":"rgb(239, 93, 81)"},
+									"E05001413":{"n":"Ardsley and Robin Hood","id":"E05001413","name":"Ardsley and Robin Hood","q":-1,"r":-3,"pop":17443,"colour":"rgb(239, 97, 79)"},
+									"E05001431":{"n":"Kippax and Methley","id":"E05001431","name":"Kippax and Methley","q":0,"r":-3,"pop":16355,"colour":"rgb(242, 118, 69)"}
+								}
+							}
+						}
+					);
+					</script>
+				</div>
+			</section>
+
+			<section class="example" id="ex2">
+				<h2>Example 2 - UK constituencies</h2>
 				<p>We load in the layout for UK constituencies, load in House of Commons petition data (2017-2019), and colour the hexes depending on the total signature count.</p>
 				<div class="example-code">
 					<style>
-					#hexmap1 { height: 1000px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
-					#hexmap1 .hex-cell { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
-					#hexmap1 .hex-cell.hover { stroke-width: 4px; }
+					#hexmap2 { height: 1000px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
+					#hexmap2 .hex-cell { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
+					#hexmap2 .hex-cell.hover { stroke-width: 4px; }
 					@media only screen and (max-width: 700px) {
-						#hexmap1 .hex-label { display: none; }
+						#hexmap2 .hex-label { display: none; }
 					}
 					</style>
-					<div id="hexmap1"></div>
+					<div id="hexmap2"></div>
 					<script>
 					// Define a colour scale function
 					function ColourScale(c){
@@ -137,12 +213,15 @@
 						};
 						return this;
 					}
+
 					// Define the Viridis colour scale
 					viridis = new ColourScale([{'rgb':[68,1,84],v:0},{'rgb':[72,35,116],'v':0.1},{'rgb':[64,67,135],'v':0.2},{'rgb':[52,94,141],'v':0.3},{'rgb':[41,120,142],'v':0.4},{'rgb':[32,143,140],'v':0.5},{'rgb':[34,167,132],'v':0.6},{'rgb':[66,190,113],'v':0.7},{'rgb':[121,209,81],'v':0.8},{'rgb':[186,222,39],'v':0.9},{'rgb':[253,231,36],'v':1}]);
+
+					// Wait until the DOM is ready
 					ODI.ready(function(){
-						hex = ODI.hexmap(document.getElementById('hexmap1'),{
+						hex = ODI.hexmap(document.getElementById('hexmap2'),{
 							// The HexJSON layout
-							'file':'https://odileeds.github.io/hexmaps/maps/constituencies.hexjson',
+							'hexjson':'https://odileeds.github.io/hexmaps/maps/constituencies.hexjson',
 							// A callback function once we've loaded the map
 							'ready':function(){
 								// Load the data
