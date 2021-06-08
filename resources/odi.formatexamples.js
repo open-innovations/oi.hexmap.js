@@ -62,6 +62,9 @@
 			css = (css);
 			js = (js);
 
+			js = js.replace(/^\t*ODI\.ready\(function\(\)\{/g,function(m,p1){ return ""; });
+			js = js.replace(/\}\)\;$/g,function(m,p1){ return ""; });
+			
 			code = sanitise((tidy(temp)));
 			code = code.replace(/(src|href)=\"([^\"]+)\"/g,function(m,p1,p2){ return p1+'="<a href="'+p2+'">'+p2+'</a>"'; });
 			
@@ -82,14 +85,13 @@
 		}
 	}
 
-	ODI.ready(function(){
-		// Style any existing prettyprint areas
-		pretty = document.querySelectorAll('.prettyprint');
-		pretty.forEach(function(e){ highlight(e); });
-		
-		// Format examples nicely to show how they were done
-		var examples = document.querySelectorAll('.example-code');
-		makeExamples(examples,{"order":["result","how"]});
-	});
+	// Style any existing prettyprint areas
+	pretty = document.querySelectorAll('.prettyprint');
+	pretty.forEach(function(e){ highlight(e); });
+	
+	// Format examples nicely to show how they were done
+	var examples = document.querySelectorAll('.example-code');
+	makeExamples(examples,{"order":["result","how"]});
+
 	root.ODI = ODI;
 })(window || this);

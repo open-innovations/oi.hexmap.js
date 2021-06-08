@@ -6,7 +6,6 @@
 	<link rel="icon" href="resources/favicon.svg" />
 	<title>ODI Leeds Hexmap Library</title>
 	<script src="odi.hexmap.js"></script>
-	<script src="resources/odi.formatexamples.js"></script>
 	<script src="resources/highlight.pack.js"></script>
 	<link rel="StyleSheet" href="resources/highlight.css" type="text/css" />
 	<style>
@@ -51,7 +50,7 @@
 	h1:first-child, h2:first-child, h3:first-child { margin-top: 0; }
 	footer { width: 100%; padding: 1em; padding-bottom: 3em; }
 	footer a, footer a:visited { color: inherit; }
-	code, pre { font-family: monospace; color: #555555; background-color: #efefef; }
+	code, pre { font-family: monospace; color: #555555; background-color: #efefef; padding: 0.125em 0.25em; }
 	button, .button { border: 0px; font-size: 1em; background-color: #efefef; color: black; text-decoration: none!important; display: inline-block; padding: 0.5em 1em; cursor: pointer; vertical-align: top; line-height: 1.25em; }
 	.prettyprint {
 		background: #efefef;
@@ -63,7 +62,9 @@
 		padding-top: 4em;
 	}
 	h2 + *, h3 + * { margin-top: 1em; }
-	p + * { margin-top: 2em; }
+	h4 { margin-top: 1em; font-weight: bold; }
+	p { margin-top: 1em; }
+	p + div { margin-top: 2em; }
 	section.example h2 + * { margin-top: 1em; }
 	.howto { margin-top: 1em; }
 	.b1-bg, footer { background: black; color: white; }
@@ -98,135 +99,184 @@
 	</header>
 	<div class="padded">
 		<div class="holder">
-			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> (22kB; 14kB minified; 5kB minified+gzipped) is our standalone Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
+			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> (20kB; 13kB minified; 5kB minified+gzipped) is our small, standalone, Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
 			
+			<p>This library assumes you have an existing hex layout (e.g. <a href="https://github.com/odileeds/hexmaps/tree/gh-pages/maps">maps we've made</a>) and the ability to add Javascript to a webpage. The library creates an SVG (scalable vector graphic) of hexes that can be styles via CSS and it provides some basic event callback functions.</p>
 
 			<section class="example" id="ex1">
-				<h2>Example 1 - Leeds Wards</h2>
-				<p>We use a HexJSON layout for Leeds Wards which has precomputed colours for the hexes. We use CSS to scale the hexes and show extra text content on hover.</p>
+				<h2>A basic hexmap</h2>
+				<p>Let's create a very basic hex map using a HexJSON layout. Everything happens in <code>ODI.hexmap(el,attributes)</code> where <code>el</code> is the DOM element we are attaching the hex map to and <code>attributes</code> defines properties of the hex map. At a minimum, <code>attributes</code> should include <code>hexjson</code> which can either be inline <a href="https://odileeds.org/projects/hexmaps/hexjson">HexJSON</a> or a path to an external HexJSON file. In this example we will add the HexJSON inline.</p>
+				<p>By default, the <code>title</code> of each hex (try hovering over them) uses the <code>n</code> or <code>name</code> property of the hex in the HexJSON.</p>
 				<div class="example-code">
 					<style>
-					#hexmap1 { height: 500px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; background: #efefef; }
-					#hexmap1 .hex-cell { stroke: white; stroke-width: 2; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
-					#hexmap1 .hex-cell.hover { stroke-width: 4px; transform: scale(1.75); }
-					#hexmap1 .hex-label tspan.on { display: none; }
-					#hexmap1 .hex-label tspan.off { display: block; }
-					#hexmap1 .hex-label tspan.big { font-weight: bold; font-size: 1.2em; }
-					#hexmap1 .hex-label.hover tspan.on { display: block; }
-					#hexmap1 .hex-label.hover tspan.off { display: none; }
+					/* Define the size of the hexmap area */
+					#hexmap1 { height: 300px; width: 100%; }
 					</style>
 					<div id="hexmap1"></div>
 					<script>
-					hex = ODI.hexmap(
-						// The DOM element to use
-						document.getElementById('hexmap1'),
-						{
-							'label':true,
-							'clip':true,
-							'formatLabel': function(txt,attr){
-								tspans = '<tspan class="off">'+txt.substr(0,3)+'</tspan>';
-								lines = txt.split(/ /);
-								lines.push(attr.hex.pop.toLocaleString());
-								for(var i = 0; i < lines.length; i++){
-									tspans += '<tspan class="on'+(i==lines.length-1 ? ' big':'')+'" y="'+(attr.y + (i-lines.length/2+0.5)*attr['font-size'])+'" x="'+attr.x+'">'+lines[i]+'</tspan>';
-								}
-								return tspans;
-							},
-							// The HexJSON layout
+					ODI.ready(function(){
+						// Attach our hexmap to <div id="hexmap1"></div>
+						hex = ODI.hexmap(document.getElementById('hexmap1'),{
+							'labels': { 'show': true },
+							// Define the HexJSON - https://odileeds.org/projects/hexmaps/hexjson
 							'hexjson':{
 								"layout":"odd-r",
 								"hexes": {
-									"E05001425":{"n":"Guiseley and Rawdon","id":"E05001425","name":"Guiseley and Rawdon","q":-3,"r":3,"pop":18253,"colour":"rgb(247, 171, 45)"},
-									"E05001437":{"n":"Otley and Yeadon","id":"E05001437","name":"Otley and Yeadon","q":-2,"r":3,"pop":17616,"colour":"rgb(246, 166, 47)"},
-									"E05001411":{"n":"Adel and Wharfedale","id":"E05001411","name":"Adel and Wharfedale","q":-1,"r":3,"pop":15919,"colour":"rgb(248, 186, 38)"},
-									"E05001412":{"n":"Alwoodley","id":"E05001412","name":"Alwoodley","q":0,"r":3,"pop":17890,"colour":"rgb(245, 150, 55)"},
-									"E05001426":{"n":"Harewood","id":"E05001426","name":"Harewood","q":1,"r":3,"pop":15194,"colour":"rgb(249, 188, 38)"},
-									"E05001443":{"n":"Wetherby","id":"E05001443","name":"Wetherby","q":2,"r":3,"pop":15753,"colour":"rgb(247, 172, 45)"},
-									"E05001428":{"n":"Horsforth","id":"E05001428","name":"Horsforth","q":-2,"r":2,"pop":17318,"colour":"rgb(247, 172, 45)"},
-									"E05001442":{"n":"Weetwood","id":"E05001442","name":"Weetwood","q":-1,"r":2,"pop":15777,"colour":"rgb(246, 160, 50)"},
-									"E05001434":{"n":"Moortown","id":"E05001434","name":"Moortown","q":0,"r":2,"pop":17595,"colour":"rgb(246, 161, 50)"},
-									"E05001440":{"n":"Roundhay","id":"E05001440","name":"Roundhay","q":1,"r":2,"pop":17419,"colour":"rgb(247, 170, 45)"},
-									"E05001418":{"n":"Calverley and Farsley","id":"E05001418","name":"Calverley and Farsley","q":-4,"r":1,"pop":18009,"colour":"rgb(245, 150, 54)"},
-									"E05001416":{"n":"Bramley and Stanningley","id":"E05001416","name":"Bramley and Stanningley","q":-3,"r":1,"pop":16582,"colour":"rgb(236, 61, 95)"},
-									"E05001432":{"n":"Kirkstall","id":"E05001432","name":"Kirkstall","q":-2,"r":1,"pop":15547,"colour":"rgb(239, 91, 82)"},
-									"E05001427":{"n":"Headingley and Hyde Park","id":"E05001427","name":"Headingley and Hyde Park","q":-1,"r":1,"pop":19339,"colour":"rgb(230, 9, 119)"},
-									"E05001419":{"n":"Chapel Allerton","id":"E05001419","name":"Chapel Allerton","q":0,"r":1,"pop":17792,"colour":"rgb(241, 117, 70)"},
-									"E05001430":{"n":"Killingbeck and Seacroft","id":"E05001430","name":"Killingbeck and Seacroft","q":1,"r":1,"pop":16467,"colour":"rgb(233, 36, 107)"},
-									"E05001438":{"n":"Pudsey","id":"E05001438","name":"Pudsey","q":-3,"r":0,"pop":18485,"colour":"rgb(244, 139, 60)"},
-									"E05001414":{"n":"Armley","id":"E05001414","name":"Armley","q":-2,"r":0,"pop":16270,"colour":"rgb(235, 54, 99)"},
-									"E05001429":{"n":"Little London and Woodhouse","id":"E05001429","name":"Little London and Woodhouse","q":-1,"r":0,"pop":14367,"colour":"rgb(230, 0, 124)"},
-									"E05001424":{"n":"Gipton and Harehills","id":"E05001424","name":"Gipton and Harehills","q":0,"r":0,"pop":16350,"colour":"rgb(235, 58, 97)"},
-									"E05001421":{"n":"Cross Gates and Whinmoor","id":"E05001421","name":"Cross Gates and Whinmoor","q":1,"r":0,"pop":17819,"colour":"rgb(239, 91, 81)"},
-									"E05001422":{"n":"Farnley and Wortley","id":"E05001422","name":"Farnley and Wortley","q":-3,"r":-1,"pop":17908,"colour":"rgb(237, 73, 90)"},
-									"E05001415":{"n":"Beeston and Holbeck","id":"E05001415","name":"Beeston and Holbeck","q":-2,"r":-1,"pop":15203,"colour":"rgb(235, 54, 98)"},
-									"E05001420":{"n":"Hunslet and Riverside","id":"E05001420","name":"Hunslet and Riverside","q":-1,"r":-1,"pop":17054,"colour":"rgb(236, 68, 92)"},
-									"E05001417":{"n":"Burmantofts and Richmond Hill","id":"E05001417","name":"Burmantofts and Richmond Hill","q":0,"r":-1,"pop":15522,"colour":"rgb(235, 52, 100)"},
-									"E05001441":{"n":"Temple Newsam","id":"E05001441","name":"Temple Newsam","q":1,"r":-1,"pop":16437,"colour":"rgb(240, 106, 75)"},
-									"E05001435":{"n":"Morley North","id":"E05001435","name":"Morley North","q":-2,"r":-2,"pop":17733,"colour":"rgb(241, 109, 73)"},
-									"E05001433":{"n":"Middleton Park","id":"E05001433","name":"Middleton Park","q":-1,"r":-2,"pop":19135,"colour":"rgb(234, 44, 103)"},
-									"E05001439":{"n":"Rothwell","id":"E05001439","name":"Rothwell","q":0,"r":-2,"pop":15889,"colour":"rgb(243, 133, 62)"},
-									"E05001423":{"n":"Garforth and Swillington","id":"E05001423","name":"Garforth and Swillington","q":1,"r":-2,"pop":16260,"colour":"rgb(247, 170, 45)"},
-									"E05001436":{"n":"Morley South","id":"E05001436","name":"Morley South","q":-2,"r":-3,"pop":16684,"colour":"rgb(239, 93, 81)"},
-									"E05001413":{"n":"Ardsley and Robin Hood","id":"E05001413","name":"Ardsley and Robin Hood","q":-1,"r":-3,"pop":17443,"colour":"rgb(239, 97, 79)"},
-									"E05001431":{"n":"Kippax and Methley","id":"E05001431","name":"Kippax and Methley","q":0,"r":-3,"pop":16355,"colour":"rgb(242, 118, 69)"}
+									"A":{"n":"0,1","q":0,"r":1},
+									"B":{"n":"1,1","q":1,"r":1},
+									"C":{"n":"2,1","q":2,"r":1},
+									"D":{"n":"0,2","q":0,"r":2},
+									"E":{"n":"1,2","q":1,"r":2},
+									"F":{"n":"2,2","q":2,"r":2}
 								}
 							}
-						}
-					);
+						});
+					});
 					</script>
 				</div>
 			</section>
 
 			<section class="example" id="ex2">
-				<h2>Example 2 - UK constituencies</h2>
-				<p>We load in the layout for UK constituencies, load in House of Commons petition data (2017-2019), and colour the hexes depending on the total signature count.</p>
+				<h2>Styling hexes and labels</h2>
+				<p>We will use the same hexmap but this time we add some extra properties to each item in the HexJSON. The <code>colour</code> property is used to colour each hex. We also turn on labels, make sure they are clipped to the hexagon, and customise the text of the label. The default label text is the value of <code>n</code> but we can provide a <code>format</code> function to customise the content. Here we split the string into separate <code>tspan</code> elements and add the population value. We make use of CSS classes so that we can make some parts of the label only visible on hover and even scale the size of the hexagon on hover (the code adds the style <code>.hover</code> to the hexagon and label).</p>
 				<div class="example-code">
 					<style>
-					#hexmap2 { height: 1000px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
-					#hexmap2 .hex-cell { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
-					#hexmap2 .hex-cell.hover { stroke-width: 4px; }
-					@media only screen and (max-width: 700px) {
-						#hexmap2 .hex-label { display: none; }
-					}
+					#hexmap2 { height: 500px; width: 100%; animation-duration: 0.3s; }
+					#hexmap2 .hex-cell { stroke: white; stroke-width: 2; transition: fill 0.3s ease-in, stroke 0.3s ease-in, stroke-width 0.3s ease-in; }
+					/* Make the hexagon larger when hovered */
+					#hexmap2 .hex-cell.hover { stroke-width: 4px; transform: scale(1.75); }
+					/* Set the on and off styles for the text labels */
+					#hexmap2 .hex-label tspan.on { display: none; }
+					#hexmap2 .hex-label tspan.off { display: block; }
+					#hexmap2 .hex-label tspan.big { font-weight: bold; font-size: 1.2em; }
+					#hexmap2 .hex-label.hover tspan.on { display: block; }
+					#hexmap2 .hex-label.hover tspan.off { display: none; }
 					</style>
 					<div id="hexmap2"></div>
 					<script>
-					// Define a colour scale function
-					function ColourScale(c){
-						var s,n;
-						s = c;
-						n = s.length;
-						this.get = function(v,min,max){
-							var c,a,b;
-							v = (v-min)/(max-min);
-							if(v<0) return 'rgb('+s[0].rgb.join(',')+')';
-							if(v>=1) return 'rgb('+s[n-1].rgb.join(',')+')';
-							for(c = 0; c < n-1; c++){
-								a = s[c];
-								b = s[c+1];
-								if(v >= a.v && v < b.v){
-									pc = Math.min(1,(v - a.v)/(b.v-a.v));
-									rgb = [Math.round(a.rgb[0] + (b.rgb[0]-a.rgb[0])*pc),Math.round(a.rgb[1] + (b.rgb[1]-a.rgb[1])*pc),Math.round(a.rgb[2] + (b.rgb[2]-a.rgb[2])*pc)];
-									return 'rgb('+rgb.join(',')+')';
-								}
-							}
-						};
-						return this;
-					}
-
-					// Define the Viridis colour scale
-					viridis = new ColourScale([{'rgb':[68,1,84],v:0},{'rgb':[72,35,116],'v':0.1},{'rgb':[64,67,135],'v':0.2},{'rgb':[52,94,141],'v':0.3},{'rgb':[41,120,142],'v':0.4},{'rgb':[32,143,140],'v':0.5},{'rgb':[34,167,132],'v':0.6},{'rgb':[66,190,113],'v':0.7},{'rgb':[121,209,81],'v':0.8},{'rgb':[186,222,39],'v':0.9},{'rgb':[253,231,36],'v':1}]);
-
-					// Wait until the DOM is ready
 					ODI.ready(function(){
 						hex = ODI.hexmap(document.getElementById('hexmap2'),{
+							'label':{
+								'show': true,	// Show a label
+								'clip': true,	// Make sure the label is clipped to the hexagon
+								// Define a function to format the hex labels
+								// It is passed:
+								//  * txt - a text string with the hex's name
+								//  * attr - an object containing:
+								//    * size - the size in pixels
+								//    * font-size - the font size in pixels
+								//    * x - the horizontal position in pixels
+								//    * y - the vertical position in pixels
+								//    * hex - the hexagon's HexJSON properties
+								'format': function(txt,attr){
+									tspans = '<tspan class="off">'+txt.substr(0,3)+'</tspan>';
+									lines = txt.split(/ /);
+									lines.push(attr.hex.pop.toLocaleString());
+									for(var i = 0; i < lines.length; i++){
+										tspans += '<tspan class="on'+(i==lines.length-1 ? ' big':'')+'" y="'+(attr.y + (i-lines.length/2+0.5)*attr['font-size'])+'" x="'+attr.x+'">'+lines[i]+'</tspan>';
+									}
+									return tspans;
+								}
+							},
+							// The HexJSON layout
+							'hexjson':{
+								"layout":"odd-r",
+								"hexes": {
+									"E05001425":{"n":"Guiseley and Rawdon","q":-3,"r":3,"pop":18253,"colour":"rgb(247, 171, 45)"},
+									"E05001437":{"n":"Otley and Yeadon","q":-2,"r":3,"pop":17616,"colour":"rgb(246, 166, 47)"},
+									"E05001411":{"n":"Adel and Wharfedale","q":-1,"r":3,"pop":15919,"colour":"rgb(248, 186, 38)"},
+									"E05001412":{"n":"Alwoodley","q":0,"r":3,"pop":17890,"colour":"rgb(245, 150, 55)"},
+									"E05001426":{"n":"Harewood","q":1,"r":3,"pop":15194,"colour":"rgb(249, 188, 38)"},
+									"E05001443":{"n":"Wetherby","q":2,"r":3,"pop":15753,"colour":"rgb(247, 172, 45)"},
+									"E05001428":{"n":"Horsforth","q":-2,"r":2,"pop":17318,"colour":"rgb(247, 172, 45)"},
+									"E05001442":{"n":"Weetwood","q":-1,"r":2,"pop":15777,"colour":"rgb(246, 160, 50)"},
+									"E05001434":{"n":"Moortown","q":0,"r":2,"pop":17595,"colour":"rgb(246, 161, 50)"},
+									"E05001440":{"n":"Roundhay","q":1,"r":2,"pop":17419,"colour":"rgb(247, 170, 45)"},
+									"E05001418":{"n":"Calverley and Farsley","q":-4,"r":1,"pop":18009,"colour":"rgb(245, 150, 54)"},
+									"E05001416":{"n":"Bramley and Stanningley","q":-3,"r":1,"pop":16582,"colour":"rgb(236, 61, 95)"},
+									"E05001432":{"n":"Kirkstall","q":-2,"r":1,"pop":15547,"colour":"rgb(239, 91, 82)"},
+									"E05001427":{"n":"Headingley and Hyde Park","q":-1,"r":1,"pop":19339,"colour":"rgb(230, 9, 119)"},
+									"E05001419":{"n":"Chapel Allerton","q":0,"r":1,"pop":17792,"colour":"rgb(241, 117, 70)"},
+									"E05001430":{"n":"Killingbeck and Seacroft","q":1,"r":1,"pop":16467,"colour":"rgb(233, 36, 107)"},
+									"E05001438":{"n":"Pudsey","q":-3,"r":0,"pop":18485,"colour":"rgb(244, 139, 60)"},
+									"E05001414":{"n":"Armley","q":-2,"r":0,"pop":16270,"colour":"rgb(235, 54, 99)"},
+									"E05001429":{"n":"Little London and Woodhouse","q":-1,"r":0,"pop":14367,"colour":"rgb(230, 0, 124)"},
+									"E05001424":{"n":"Gipton and Harehills","q":0,"r":0,"pop":16350,"colour":"rgb(235, 58, 97)"},
+									"E05001421":{"n":"Cross Gates and Whinmoor","q":1,"r":0,"pop":17819,"colour":"rgb(239, 91, 81)"},
+									"E05001422":{"n":"Farnley and Wortley","q":-3,"r":-1,"pop":17908,"colour":"rgb(237, 73, 90)"},
+									"E05001415":{"n":"Beeston and Holbeck","q":-2,"r":-1,"pop":15203,"colour":"rgb(235, 54, 98)"},
+									"E05001420":{"n":"Hunslet and Riverside","q":-1,"r":-1,"pop":17054,"colour":"rgb(236, 68, 92)"},
+									"E05001417":{"n":"Burmantofts and Richmond Hill","q":0,"r":-1,"pop":15522,"colour":"rgb(235, 52, 100)"},
+									"E05001441":{"n":"Temple Newsam","q":1,"r":-1,"pop":16437,"colour":"rgb(240, 106, 75)"},
+									"E05001435":{"n":"Morley North","q":-2,"r":-2,"pop":17733,"colour":"rgb(241, 109, 73)"},
+									"E05001433":{"n":"Middleton Park","q":-1,"r":-2,"pop":19135,"colour":"rgb(234, 44, 103)"},
+									"E05001439":{"n":"Rothwell","q":0,"r":-2,"pop":15889,"colour":"rgb(243, 133, 62)"},
+									"E05001423":{"n":"Garforth and Swillington","q":1,"r":-2,"pop":16260,"colour":"rgb(247, 170, 45)"},
+									"E05001436":{"n":"Morley South","q":-2,"r":-3,"pop":16684,"colour":"rgb(239, 93, 81)"},
+									"E05001413":{"n":"Ardsley and Robin Hood","q":-1,"r":-3,"pop":17443,"colour":"rgb(239, 97, 79)"},
+									"E05001431":{"n":"Kippax and Methley","q":0,"r":-3,"pop":16355,"colour":"rgb(242, 118, 69)"}
+								}
+							}
+						});
+					});
+					</script>
+				</div>
+			</section>
+
+			<section class="example" id="ex3">
+				<h2>Using external data and adding tooltips</h2>
+				<p>This example loads in an external HexJSON file, loads in some data, and then colours the hexes depending on the data. To work out the colours we'll make a little helper function <code>ColourScale</code>.</p>
+				<div class="example-code">
+					<style>
+					#hexmap3 { height: 800px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
+					#hexmap3 .hex-cell { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
+					#hexmap3 .hex-cell.hover { stroke-width: 4px; }
+					@media only screen and (max-width: 700px) {
+						/* Don't bother with labels if it is too small */
+						#hexmap3 .hex-label { display: none; }
+					}
+					#hexmap3 .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.25em 0.5em; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
+					#hexmap3 .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
+					</style>
+					<div id="hexmap3"></div>
+					<script>
+					ODI.ready(function(){
+						// Define a colour scale helper function
+						function ColourScale(c){
+							var s,n;
+							s = c;
+							n = s.length;
+							// Get a colour given a value, and the range minimum/maximum
+							this.getValue = function(v,min,max){
+								var c,a,b;
+								v = (v-min)/(max-min);
+								if(v<0) return 'rgb('+s[0].rgb.join(',')+')';
+								if(v>=1) return 'rgb('+s[n-1].rgb.join(',')+')';
+								for(c = 0; c < n-1; c++){
+									a = s[c];
+									b = s[c+1];
+									if(v >= a.v && v < b.v){
+										pc = Math.min(1,(v - a.v)/(b.v-a.v));
+										rgb = [Math.round(a.rgb[0] + (b.rgb[0]-a.rgb[0])*pc),Math.round(a.rgb[1] + (b.rgb[1]-a.rgb[1])*pc),Math.round(a.rgb[2] + (b.rgb[2]-a.rgb[2])*pc)];
+										return 'rgb('+rgb.join(',')+')';
+									}
+								}
+							};
+							return this;
+						}
+
+						// Define the Viridis colour scale
+						viridis = new ColourScale([{'rgb':[68,1,84],v:0},{'rgb':[72,35,116],'v':0.1},{'rgb':[64,67,135],'v':0.2},{'rgb':[52,94,141],'v':0.3},{'rgb':[41,120,142],'v':0.4},{'rgb':[32,143,140],'v':0.5},{'rgb':[34,167,132],'v':0.6},{'rgb':[66,190,113],'v':0.7},{'rgb':[121,209,81],'v':0.8},{'rgb':[186,222,39],'v':0.9},{'rgb':[253,231,36],'v':1}]);
+
+						// Create the hexagon layout
+						hex = ODI.hexmap(document.getElementById('hexmap3'),{
 							// The HexJSON layout
 							'hexjson':'resources/constituencies.hexjson',
-							// A callback function once we've loaded the map
+							// Once we've loaded the map the ready function is called
 							'ready':function(){
 								// Load the data
 								ODI.ajax('resources/2017-9.json',{
-									'this': this,
+									'this': this, // Set the context to the hexmap
 									'dataType':'json',
 									'success':function(data){
 										// Process the data file to find the minimum and maximum
@@ -236,12 +286,35 @@
 											min = Math.min(data[r],min);
 											max = Math.max(data[r],max);
 										}
+										this.data = data;
 										// Update the hex colours
-										this.updateColours(function(r){ return viridis.get(data[r],min,max); });
+										this.updateColours(function(r){ return viridis.getValue(data[r],min,max); });
 									},
 									'error':function(e,attr){ this.log('ERROR','Unable to load ',attr.url,attr); }
 								});
 							}
+						});
+
+						// Make a tooltip
+						hex.on('mouseover',function(e){
+							var svg,tip,bb,bbo,hex;
+							svg = e.data.hexmap.el;
+							hex = e.target;
+							// Get any existing tooltip for this hexmap
+							tip = svg.querySelector('.tooltip');
+							if(!tip){
+								// Add a new tooltip
+								tip = document.createElement('div');
+								tip.classList.add('tooltip');
+								svg.appendChild(tip);
+							}
+							// Update contents of tooltip
+							tip.innerHTML = e.data.data.n+'<br />'+e.data.hexmap.data[e.data.region].toLocaleString()+' signatures';
+							// Update position of tooltip
+							bb = hex.getBoundingClientRect();
+							bbo = svg.getBoundingClientRect();
+							tip.style.left = Math.round(bb.left + bb.width/2 - bbo.left + svg.scrollLeft)+'px';
+							tip.style.top = Math.round(bb.top + bb.height/2 - bbo.top)+'px';
 						});
 					});
 					</script>
@@ -255,6 +328,7 @@
 		<p>&copy; 2021 <a href="https://odileeds.org/" target="_parent">ODI Leeds</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_parent">CC BY</a>).</p>
 		</div>
 	</footer>
+	<script src="resources/odi.formatexamples.js"></script>
 	<script src="https://odileeds.org/resources/odi.log.js"></script>
 	<script>
 	ODI.log.setup({'id':'odileeds','target':['odileeds.github.io']}).add('action=view');
