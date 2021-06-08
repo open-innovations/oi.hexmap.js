@@ -101,11 +101,11 @@
 		<div class="holder">
 			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> (20kB; 13kB minified; 5kB minified+gzipped) is our small, standalone, Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
 			
-			<p>This library assumes you have an existing hex layout (e.g. <a href="https://github.com/odileeds/hexmaps/tree/gh-pages/maps">maps we've made</a>) and the ability to add Javascript to a webpage. The library creates an SVG (scalable vector graphic) of hexes that can be styles via CSS and it provides some basic event callback functions.</p>
+			<p>This library assumes you have an existing hex layout as <a href="https://odileeds.org/projects/hexmaps/hexjson">HexJSON</a> (e.g. <a href="https://github.com/odileeds/hexmaps/tree/gh-pages/maps">layouts we've made</a>) and the ability to add Javascript to a webpage. The library creates an SVG (scalable vector graphic) of hexes - which can be styled via CSS - and some basic event callbacks.</p>
 
 			<section class="example" id="ex1">
 				<h2>A basic hexmap</h2>
-				<p>Let's create a very basic hex map using a HexJSON layout. Everything happens in <code>ODI.hexmap(el,attributes)</code> where <code>el</code> is the DOM element we are attaching the hex map to and <code>attributes</code> defines properties of the hex map. At a minimum, <code>attributes</code> should include <code>hexjson</code> which can either be inline <a href="https://odileeds.org/projects/hexmaps/hexjson">HexJSON</a> or a path to an external HexJSON file. In this example we will add the HexJSON inline.</p>
+				<p>Let's create a very basic hex map using a HexJSON layout. Everything happens in <code>ODI.hexmap(el,attributes)</code> where <code>el</code> is the DOM element we are attaching the hex map to and <code>attributes</code> defines properties of the hex map. At a minimum, <code>attributes</code> should include <code>hexjson</code> which can either be inline HexJSON or a path to an external HexJSON file. In this example we will add the HexJSON inline.</p>
 				<p>By default, the <code>title</code> of each hex (try hovering over them) uses the <code>n</code> or <code>name</code> property of the hex in the HexJSON.</p>
 				<div class="example-code">
 					<style>
