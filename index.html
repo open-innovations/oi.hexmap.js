@@ -70,6 +70,15 @@
 	.b1-bg, footer { background: black; color: white; }
 	.b6-bg { background: white; color: black; }
 	#intro { text-align: center; padding: 1em; max-width: 720px; margin: 0 auto 1em; }
+	figure figcaption {
+		width: 70%;
+		margin: 1em auto 0 auto;
+		font-size: 0.8em;
+		line-height: 1.2em;
+		text-align: center;
+		color: #999;
+	}
+	figure:hover figcaption { color: inherit; }
 	</style>
 </head>
 <body class="b6-bg">
@@ -152,7 +161,10 @@
 					#hexmap2 .hex-label.hover tspan.on { display: block; }
 					#hexmap2 .hex-label.hover tspan.off { display: none; }
 					</style>
-					<div id="hexmap2"></div>
+					<figure>
+						<div id="hexmap2"></div>
+						<figcaption>Cartogram showing Leeds wards with coloured assigned manually.</figcaption>
+					</figure>
 					<script>
 					ODI.ready(function(){
 						hex = ODI.hexmap(document.getElementById('hexmap2'),{
@@ -238,7 +250,10 @@
 					#hexmap3 .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.25em 0.5em; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
 					#hexmap3 .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
 					</style>
-					<div id="hexmap3"></div>
+					<figure>
+						<div id="hexmap3"></div>
+						<figcaption>Cartogram showing UK constituencies coloured by the number of signatures they received on House of Commons petitions during 2017-2019. Data from The House of Commons Library. Layout by ODI Leeds and contributors.</figcaption>
+					</figure>
 					<script>
 					ODI.ready(function(){
 						// Define a colour scale helper function
