@@ -112,6 +112,29 @@
 			
 			<p>This library assumes you have an existing hex layout as <a href="https://odileeds.org/projects/hexmaps/hexjson">HexJSON</a> (e.g. <a href="https://github.com/odileeds/hexmaps/tree/gh-pages/maps">layouts we've made</a>) and the ability to add Javascript to a webpage. The library creates an SVG (scalable vector graphic) of hexes - which can be styled via CSS - and some basic event callbacks.</p>
 
+			<style>
+			#hero {
+				width: 100%;
+				height: 200px;
+				margin-top: 1em;
+				overflow: hidden;
+			}
+			</style>
+			<div id="hero">
+			</div>
+			<script>
+				c = ["#2254F4","#178CFF","#00B6FF","#08DEF9","#1DD3A7","#0DBC37","#67E767","#722EA5","#E6007C","#EF3AAB","#D73058","#D60303","#FF6700","#F9BC26"];
+				// Create a HexJSON to fill the space
+				hexjson = {"layout":"odd-r","hexes":{}};
+				for(q = 0; q<22; q++){
+					for(r = 0; r<5;r++) hexjson.hexes[q+"-"+r] = {"n":q+","+r,"q":q,"r":r,"colour":c[Math.round(Math.random()*14)]};
+				}
+				hero = ODI.hexmap(document.getElementById('hero'),{
+					"hexjson": hexjson,
+					"size": 32	// Hard-code a size for the hexes
+				});
+			</script>
+
 			<section class="example" id="ex1">
 				<h2>A basic hexmap</h2>
 				<p>Let's create a very basic hex map using a HexJSON layout. Everything happens in <code>ODI.hexmap(el,attributes)</code> where <code>el</code> is the DOM element we are attaching the hex map to and <code>attributes</code> defines properties of the hex map. At a minimum, <code>attributes</code> should include <code>hexjson</code> which can either be inline HexJSON or a path to an external HexJSON file. In this example we will add the HexJSON inline.</p>
@@ -175,11 +198,11 @@
 								// It is passed:
 								//  * txt - a text string with the hex's name
 								//  * attr - an object containing:
-								//    * size - the size in pixels
-								//    * font-size - the font size in pixels
-								//    * x - the horizontal position in pixels
-								//    * y - the vertical position in pixels
-								//    * hex - the hexagon's HexJSON properties
+								//			.* size - the size in pixels
+								//			.* font-size - the font size in pixels
+								//			.* x - the horizontal position in pixels
+								//			.* y - the vertical position in pixels
+								//			.* hex - the hexagon's HexJSON properties
 								'format': function(txt,attr){
 									tspans = '<tspan class="off">'+txt.substr(0,3)+'</tspan>';
 									lines = txt.split(/ /);
@@ -340,7 +363,7 @@
 	</div>
 	<footer>
 		<div class="holder">
-		<p>&copy; 2021 <a href="https://odileeds.org/" target="_parent">ODI Leeds</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_parent">CC BY</a>).</p>
+		<p>&copy; 2021 <a href="https://odileeds.org/" target="_parent">ODI Leeds</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_parent">CC BY</a>). Find the <a href="https://github.com/odileeds/odi.hexmap.js">code on Github</a>.</p>
 		</div>
 	</footer>
 	<script src="resources/odi.formatexamples.js"></script>

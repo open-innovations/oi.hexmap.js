@@ -192,6 +192,7 @@
 				}
 				cls += ' selected';
 			}
+			if(this.mapping.hexes[r]['class']) cls += " "+this.mapping.hexes[r]['class'];
 			style['class'] = 'hex-cell'+cls;
 			setAttr(h.hex,style);
 			if(h.label) setAttr(h.label,{'class':'hex-label'+cls});
@@ -416,7 +417,7 @@
 					x = (wide/2) + ((p.q-this.range.q.mid) * ss * 3);
 					y = (tall/2) - ((p.r-this.range.r.mid) * cs * 2);
 				}
-
+				x = parseFloat(x.toFixed(1));
 				path = [['M',[x,y]]];
 				if(this.properties.orientation == "r"){
 					// Pointy topped
