@@ -538,7 +538,7 @@
 		return this;
 	
 	}
-	ODI.hexmap = function(el,attr){ return new HexMap(el,attr); };
+	ODI.hexmap = HexMap;
 
 	// Helper functions
 	var ns = 'http://www.w3.org/2000/svg';

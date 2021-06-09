@@ -104,7 +104,7 @@
 				</svg></a>
 				<h1>Hexmap Library</h1>
 				<script>
-				a = ODI.hexmap();
+				a = new ODI.hexmap();
 				document.querySelector('h1').innerHTML += ' v'+a.version+'';
 				</script>
 			</div>
@@ -112,7 +112,7 @@
 	</header>
 	<div class="padded">
 		<div class="holder">
-			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> (20kB; <a href="odi.hexmap.min.js">13kB minified</a>; 5kB minified+gzipped) is our small, standalone, Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
+			<p id="intro"><a href="odi.hexmap.js">odi.hexmap.js</a> (20kB; <a href="odi.hexmap.min.js">12kB minified</a>; 5kB minified+gzipped) is our small, standalone, Javascript library for making interactive hexmaps (cartograms). There are some <a href="#ex1">examples below</a>.</p>
 			
 			<p>This library assumes you have an existing hex layout as <a href="https://odileeds.org/projects/hexmaps/hexjson">HexJSON</a> (e.g. <a href="https://github.com/odileeds/hexmaps/tree/gh-pages/maps">layouts we've made</a>) and the ability to add Javascript to a webpage. The library creates an SVG (scalable vector graphic) of hexes - which can be styled via CSS - and some basic event callbacks.</p>
 
@@ -133,7 +133,7 @@
 				for(q = 0; q<22; q++){
 					for(r = 0; r<5;r++) hexjson.hexes[q+"-"+r] = {"n":q+","+r,"q":q,"r":r,"colour":c[Math.round(Math.random()*14)]};
 				}
-				hero = ODI.hexmap(document.getElementById('hero'),{
+				hero = new ODI.hexmap(document.getElementById('hero'),{
 					"hexjson": hexjson,
 					"size": 32	// Hard-code a size for the hexes
 				});
@@ -152,7 +152,7 @@
 					<script>
 					ODI.ready(function(){
 						// Attach our hexmap to <div id="hexmap1"></div>
-						hex = ODI.hexmap(document.getElementById('hexmap1'),{
+						hex = new ODI.hexmap(document.getElementById('hexmap1'),{
 							'labels': { 'show': true },
 							// Define the HexJSON - https://odileeds.org/projects/hexmaps/hexjson
 							'hexjson':{
@@ -194,7 +194,7 @@
 					</figure>
 					<script>
 					ODI.ready(function(){
-						hex = ODI.hexmap(document.getElementById('hexmap2'),{
+						hex = new ODI.hexmap(document.getElementById('hexmap2'),{
 							'label':{
 								'show': true,	// Show a label
 								'clip': true,	// Make sure the label is clipped to the hexagon
@@ -311,7 +311,7 @@
 						viridis = new ColourScale([{'rgb':[68,1,84],v:0},{'rgb':[72,35,116],'v':0.1},{'rgb':[64,67,135],'v':0.2},{'rgb':[52,94,141],'v':0.3},{'rgb':[41,120,142],'v':0.4},{'rgb':[32,143,140],'v':0.5},{'rgb':[34,167,132],'v':0.6},{'rgb':[66,190,113],'v':0.7},{'rgb':[121,209,81],'v':0.8},{'rgb':[186,222,39],'v':0.9},{'rgb':[253,231,36],'v':1}]);
 
 						// Create the hexagon layout
-						hex = ODI.hexmap(document.getElementById('hexmap3'),{
+						hex = new ODI.hexmap(document.getElementById('hexmap3'),{
 							// The HexJSON layout
 							'hexjson':'resources/constituencies.hexjson',
 							// Once we've loaded the map the ready function is called
