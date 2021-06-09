@@ -1,6 +1,6 @@
 /**
 	ODI Leeds hex map in SVG
-	Version 0.5.3
+	Version 0.5.4
  */
 (function(root){
 
@@ -50,7 +50,7 @@
 	//      size: the size of a hexagon in pixels
 	function HexMap(el,attr){
 
-		this.version = "0.5.3";
+		this.version = "0.5.4";
 		if(!attr) attr  = {};
 		this._attr = attr;
 		this.title = "ODI HexMap";
@@ -92,8 +92,7 @@
 		var constructed = false;
 		var svg;
 		var range = {};
-		var fs = 16;
-
+		var fs = parseFloat(getComputedStyle(el)['font-size'])||16;
 		this.areas = {};
 		this.properties = { 'size': attr.size };
 		this.callback = {};
@@ -132,21 +131,11 @@
 				if(attr.style[s]['stroke-opacity']) this.style[s]['stroke-opacity'] = attr.style[s]['stroke-opacity'];
 			}
 		}
-		
-		this.setFontSize = function(s){
-			fs = s;
-			this.style['default']['font-size'] = fs;
-			for(var r in this.areas){
-				if(this.areas[r].label) setAttr(this.areas[r].label,{'font-size':fs+'px'});
-			}
-			return this;
-		};
 		this.setHexSize = function(s){
 			if(typeof s!=="number") s = 10;
 			s = Math.round(100*s)/100;
 			attr.size = s;
 			this.properties.size = s;
-			this.setFontSize(s*0.4);
 			return this;
 		};
 
@@ -214,16 +203,12 @@
 				// Keep selected items on top
 				for(var r in this.areas){
 					if(this.areas[r]){
-						if(this.areas[r].selected){
-							add(this.areas[r].hex,svg);
-							if(this.areas[r].label) add(this.areas[r].label,svg);
-						}
+						if(this.areas[r].selected) add(this.areas[r].g,svg);
 						if(this.options.clip) setClip(this.areas[r]);
 					}
 				}
 				// Simulate a change of z-index by moving this element (hex and label) to the end of the SVG
-				add(this.areas[region].hex,svg);
-				if(this.areas[region].label) add(this.areas[region].label,svg);
+				add(this.areas[region].g,svg);
 			}
 			return this;
 		};
@@ -323,7 +308,6 @@
 				add(svg,this.el);
 			}
 			setAttr(svg,{'width':w,'height':h});
-			setAttr(el,{'style':'width:'+w+'px;height:'+h+'px'});
 			
 			var scale = w/wide;
 			this.properties.size = attr.size*scale;
@@ -487,12 +471,13 @@
 				add(this.grid,svg);
 			}
 
-			var min,max,_obj,defs,path,label,hexclip;
+			var min,max,_obj,defs,path,label,hexclip,id;
 			min = 50000;
 			max = 80000;
 			_obj = this;
 			defs = svgEl('defs');
 			add(defs,svg);
+			id = (el.getAttribute('id')||'hex');
 
 			for(r in this.mapping.hexes){
 				if(this.mapping.hexes[r]){
@@ -500,39 +485,39 @@
 					h = this.drawHex(this.mapping.hexes[r].q,this.mapping.hexes[r].r);
 
 					if(!constructed){
+						g = svgEl('g');
+						setAttr(g,{'data':r});
+						svg.appendChild(g);
 						path = svgEl('path');
 						path.innerHTML = '<title>'+(this.mapping.hexes[r].n || r)+'</title>';
-						setAttr(path,{'d':h.path,'class':'hex-cell','transform-origin':h.x+'px '+h.y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'id':'hex-'+r});
-						svg.appendChild(path);
-						this.areas[r] = {'hex':path,'selected':false,'active':true};
+						setAttr(path,{'d':h.path,'class':'hex-cell','transform-origin':h.x+'px '+h.y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r});
+						g.appendChild(path);
+						this.areas[r] = {'g':g,'hex':path,'selected':false,'active':true,'data':this.mapping.hexes[r]};
 
-						// Attach events to our SVG hex nodes
-						addEvent('mouseover',path,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r],pop:this.mapping.hexes[r].p},events.mouseover);
-						addEvent('mouseout',path,{type:'hex',hexmap:this,region:r,me:this.areas[r]},events.mouseout);
-						addEvent('click',path,{type:'hex',hexmap:this,region:r,me:this.areas[r],data:this.mapping.hexes[r]},events.click);
+						// Attach events to our SVG group nodes
+						addEvent('mouseover',g,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r],pop:this.mapping.hexes[r].p},events.mouseover);
+						addEvent('mouseout',g,{type:'hex',hexmap:this,region:r,me:this.areas[r]},events.mouseout);
+						addEvent('click',g,{type:'hex',hexmap:this,region:r,me:this.areas[r],data:this.mapping.hexes[r]},events.click);
 
 						if(this.options.showlabel){
 							if(this.style['default']['font-size'] >= this.options.minFontSize){
 								if(this.options.clip){
 									// Make all the clipping areas
+									this.areas[r].clipid = (el.getAttribute('id')||'hex')+'-clip-'+r;
 									this.areas[r].clip = svgEl('clipPath');
-									this.areas[r].clip.setAttribute('id','hex-clip-'+r);
+									this.areas[r].clip.setAttribute('id',this.areas[r].clipid);
 									hexclip = svgEl('path');
 									setAttr(hexclip,{'d':h.path,'transform-origin':h.x+'px '+h.y+'px'});
 									add(hexclip,this.areas[r].clip);
 									add(this.areas[r].clip,defs);
 								}
 								label = svgEl('text');
-								label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':this.style['default']['font-size']});
-								setAttr(label,{'x':h.x,'y':h.y,'id':'hex-'+r+'-label','transform-origin':h.x+'px '+h.y+'px','dominant-baseline':'central','clip-path':'url(#hex-clip-'+r+')','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[r].n || r),'_region':r});
-								svg.appendChild(label);
+								// Add to DOM
+								g.appendChild(label);
+								label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(getComputedStyle(label)['font-size'])});
+								setAttr(label,{'x':h.x,'y':h.y,'transform-origin':h.x+'px '+h.y+'px','dominant-baseline':'central','clip-path':'url(#'+this.areas[r].clipid+')','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','title':(this.mapping.hexes[r].n || r),'_region':r});
 								this.areas[r].label = label;
 								this.areas[r].labelprops = {x:h.x,y:h.y};
-
-								// Attach events to our SVG label nodes
-								addEvent('mouseover',label,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r],pop:this.mapping.hexes[r].p},events.mouseover);
-								addEvent('mouseout',label,{type:'hex',hexmap:this,region:r,me:this.areas[r]},events.mouseout);
-								addEvent('click',label,{type:'hex',hexmap:this,region:r,me:this.areas[r],data:this.mapping.hexes[r]},events.click);
 							}
 						}
 
