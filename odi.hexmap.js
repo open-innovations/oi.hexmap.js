@@ -143,6 +143,7 @@
 		};
 		this.setHexSize = function(s){
 			if(typeof s!=="number") s = 10;
+			s = Math.round(100*s)/100;
 			attr.size = s;
 			this.properties.size = s;
 			this.setFontSize(s*0.4);
@@ -384,7 +385,7 @@
 			if(this.properties.orientation=="r") s = Math.min(0.5*tall/(range.r.d*0.75 + 1),(1/Math.sqrt(3))*wide/(range.q.d + 1));	// Pointy-topped
 			else s = Math.min((1/Math.sqrt(3))*tall/(range.r.d + 1),0.5*wide/(range.q.d*0.75 + 1));	// Flat-topped
 
-			if(typeof attr.size!=="number") this.setHexSize(Math.round(s));
+			if(typeof attr.size!=="number") this.setHexSize(s);
 			this.setSize();
 
 			return this.initialized();
