@@ -75,7 +75,7 @@
 
 		if(!el){
 			this.log('ERROR','Unable to find the element to draw into',el);
-			return {};
+			return this;
 		}
 
 		if(!attr.label) attr.label = {};
