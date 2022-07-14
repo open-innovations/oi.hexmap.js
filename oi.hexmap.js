@@ -79,7 +79,7 @@
 		};
 
 		if(!el){
-			this.log('ERROR','Unable to find the element to draw into',el);
+			this.log('WARNING','No DOM element to add to');
 			return this;
 		}
 
