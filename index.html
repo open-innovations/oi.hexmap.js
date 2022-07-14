@@ -165,6 +165,11 @@
 				});
 			</script>
 
+			<h4>Include the Javascript library</h4>
+			<pre class="prettyprint lang-css hljs">
+			&lt;script src="oi.hexmap.js"&gt;&lt;/script&gt;
+			</pre>
+			
 			<section class="example" id="ex1">
 				<h2>A basic hexmap</h2>
 				<p>Let's create a very basic hex map using a HexJSON layout. Everything happens in <code>OI.hexmap(el,attributes)</code> where <code>el</code> is the DOM element we are attaching the hex map to and <code>attributes</code> defines properties of the hex map. At a minimum, <code>attributes</code> should include <code>hexjson</code> which can either be inline HexJSON or a path to an external HexJSON file. In this example we will add the HexJSON inline.</p>
@@ -228,11 +233,11 @@
 								// It is passed:
 								//  * txt - a text string with the hex's name
 								//  * attr - an object containing:
-								//			.* size - the size in pixels
-								//			.* font-size - the font size in pixels
-								//			.* x - the horizontal position in pixels
-								//			.* y - the vertical position in pixels
-								//			.* hex - the hexagon's HexJSON properties
+								//		* size - the size in pixels
+								//		* font-size - the font size in pixels
+								//		* x - the horizontal position in pixels
+								//		* y - the vertical position in pixels
+								//		* hex - the hexagon's HexJSON properties
 								'format': function(txt,attr){
 									tspans = '<tspan class="off">'+txt.substr(0,3)+'</tspan>';
 									lines = txt.split(/ /);
@@ -396,7 +401,7 @@
 		<p>&copy; 2022 <a href="https://open-innovations.org/" target="_parent">Open Innovations</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_parent">CC BY</a>). Find the <a href="https://github.com/open-innovations/oi.hexmap.js">code on Github</a>.</p>
 		</div>
 	</footer>
-	<script src="resources/odi.formatexamples.js"></script>
+	<script src="resources/oi.formatexamples.js"></script>
 	<script src="https://open-innovations.org/resources/oi.log.js"></script>
 	<script>
 	OI.log.setup({'id':'odileeds','target':['open-innovations.github.io','open-innovations.org']}).add('action=view');

@@ -1,8 +1,8 @@
 (function(root){
 
-	var ODI = root.ODI || {};
-	if(!ODI.ready){
-		ODI.ready = function(fn){
+	var OI = root.OI || {};
+	if(!OI.ready){
+		OI.ready = function(fn){
 			// Version 1.1
 			if(document.readyState != 'loading') fn();
 			else document.addEventListener('DOMContentLoaded', fn);
@@ -62,7 +62,7 @@
 			css = (css);
 			js = (js);
 
-			js = js.replace(/^\t*ODI\.ready\(function\(\)\{/g,function(m,p1){ return ""; });
+			js = js.replace(/^\t*OI\.ready\(function\(\)\{/g,function(m,p1){ return ""; });
 			js = js.replace(/\}\)\;$/g,function(m,p1){ return ""; });
 			
 			code = sanitise((tidy(temp)));
@@ -93,5 +93,5 @@
 	var examples = document.querySelectorAll('.example-code');
 	makeExamples(examples,{"order":["result","how"]});
 
-	root.ODI = ODI;
+	root.OI = OI;
 })(window || this);
