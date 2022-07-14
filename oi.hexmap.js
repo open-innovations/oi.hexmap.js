@@ -1,12 +1,17 @@
 /**
-	ODI Leeds hex map in SVG
-	Version 0.5.4
+	OI hex map in SVG
+	0.6.1:
+		- bug fixes
+	0.6.0:
+		- change namespace
+		- set padding
+		- can provide function to updateColours()
  */
 (function(root){
 
-	var ODI = root.ODI || {};
-	if(!ODI.ready){
-		ODI.ready = function(fn){
+	var OI = root.OI || {};
+	if(!OI.ready){
+		OI.ready = function(fn){
 			// Version 1.1
 			if(document.readyState != 'loading') fn();
 			else document.addEventListener('DOMContentLoaded', fn);
@@ -36,7 +41,7 @@
 		req.send();
 		return this;
 	}
-	if(!ODI.ajax) ODI.ajax = AJAX;
+	if(!OI.ajax) OI.ajax = AJAX;
 
 	// Input structure:
 	//    el: the element to attach to
@@ -50,10 +55,10 @@
 	//      size: the size of a hexagon in pixels
 	function HexMap(el,attr){
 
-		this.version = "0.5.4";
+		this.version = "0.6.1";
 		if(!attr) attr  = {};
 		this._attr = attr;
-		this.title = "ODI HexMap";
+		this.title = "OI HexMap";
 		this.logging = (location.search.indexOf('debug=true') >= 0);
 		this.log = function(){
 			// Version 1.1
@@ -86,14 +91,15 @@
 
 		var wide = attr.width || el.offsetWidth || 300;
 		var tall = attr.height || el.offsetHeight || 150;
-		var maxw = wide;
-		var maxh = tall;
+		this.maxw = wide;
+		this.maxh = tall;
 		var aspectratio = wide/tall;
 		var constructed = false;
 		var svg;
 		var range = {};
 		var fs = parseFloat(getComputedStyle(el)['font-size'])||16;
 		this.areas = {};
+		this.padding = (typeof attr.padding==="number" ? attr.padding : 0);
 		this.properties = { 'size': attr.size };
 		this.callback = {};
 		this.mapping = {};
@@ -154,7 +160,7 @@
 			}
 			if(typeof file==="string"){
 				this.log('INFO','Loading '+file,prop,fn);
-				ODI.ajax(file,{
+				OI.ajax(file,{
 					'this': this,
 					'dataType':'json',
 					'success': function(data){ done(data); },
@@ -290,16 +296,15 @@
 			this.callback[type] = { 'fn': fn, 'attr': prop };
 			return this;
 		};
-
 		this.size = function(w,h){
 			this.el.style.height = '';
 			this.el.style.width = '';
 			setAttr(el,{'style':''});
 			if(svg) setAttr(svg,{'width':0,'height':0});
-			w = Math.min(maxw,el.offsetWidth);
+			w = Math.min(this.maxw,el.offsetWidth);
 			this.el.style.height = (w/aspectratio)+'px';
 			this.el.style.width = w+'px';
-			h = Math.min(maxh,this.el.offsetHeight);
+			h = Math.min(this.maxh,this.el.offsetHeight);
 			
 			// Create SVG container
 			if(!svg){
@@ -365,7 +370,7 @@
 			range.r.d = range.r.max-range.r.min;
 			range.q.mid = range.q.min + range.q.d/2;
 			range.r.mid = range.r.min + range.r.d/2;
-			this.range = range;
+			this.range = clone(range);
 
 			if(this.properties.orientation=="r") s = Math.min(0.5*tall/(range.r.d*0.75 + 1),(1/Math.sqrt(3))*wide/(range.q.d + 1));	// Pointy-topped
 			else s = Math.min((1/Math.sqrt(3))*tall/(range.r.d + 1),0.5*wide/(range.q.d*0.75 + 1));	// Flat-topped
@@ -421,13 +426,17 @@
 
 		this.updateColours = function(fn){
 			var r,fill;
+			if(typeof fn!=="function"){
+				fn = function(){
+					var fill = this.style['default'].fill;
+					if(_obj.mapping.hexes[r].colour) fill = _obj.mapping.hexes[r].colour;					
+					if(typeof attr.colours==="string") fill = attr.colours;
+					return fill;
+				};
+			}
 			for(r in this.mapping.hexes){
 				if(this.mapping.hexes[r]){
-					fill = this.style['default'].fill;
-					if(this.mapping.hexes[r].colour) fill = this.mapping.hexes[r].colour;					
-					if(typeof attr.colours==="string") fill = attr.colours;
-					if(typeof fn==="function") fill = fn.call(this,r);
-					this.areas[r].fillcolour = fill;
+					this.areas[r].fillcolour = fn.call(this,r);
 					this.setHexStyle(r);
 				}
 			}
@@ -435,11 +444,36 @@
 		};
 		
 		this.draw = function(){			
-			var r,q,h,hex;
+			var r,q,h,hex,region;
+
+			var range = this.range;
+			for(region in this.mapping.hexes){
+				if(this.mapping.hexes[region]){
+					q = this.mapping.hexes[region].q;
+					r = this.mapping.hexes[region].r;
+					if(q > range.q.max) range.q.max = q;
+					if(q < range.q.min) range.q.min = q;
+					if(r > range.r.max) range.r.max = r;
+					if(r < range.r.min) range.r.min = r;
+				}
+			}
+			
+			// Add padding to range
+			range.q.min -= this.padding;
+			range.q.max += this.padding;
+			range.r.min -= this.padding;
+			range.r.max += this.padding;
+		
+			// q,r coordinate of the centre of the range
+			var qp = (range.q.max+range.q.min)/2;
+			var rp = (range.r.max+range.r.min)/2;
+			
+			this.properties.x = (this.w/2) - (this.properties.s.cos * 2 *qp);
+			this.properties.y = (this.h/2) + (this.properties.s.sin * 3 *rp);
 
 			// Store this for use elsewhere
-			this.range = range;
-			
+			this.range = clone(range);
+
 			function ev(e,t){
 				if(e.data.hexmap.callback[t]){
 					for(var a in e.data.hexmap.callback[t].attr){
@@ -449,29 +483,30 @@
 				}				
 			}
 			var events = {
-				'mouseover': function(e){ e.data.hexmap.regionFocus(e.data.region); ev(e,'mouseover'); },
+				'mouseover': function(e){ if(e.data.region){ e.data.hexmap.regionFocus(e.data.region); } ev(e,'mouseover'); },
 				'mouseout': function(e){ ev(e,'mouseout'); },
-				'click': function(e){ e.data.hexmap.regionFocus(e.data.region); ev(e,'click'); }
+				'click': function(e){ if(e.data.region){ e.data.hexmap.regionFocus(e.data.region); } ev(e,'click'); }
 			};
 			if((this.options.showgrid || this.options.clip) && !this.grid){
 				this.grid = svgEl('g');
+				setAttr(this.grid,{'class':'hex-grid-holder'});
 				for(q = range.q.min-1; q <= range.q.max+1; q++){
 					for(r = range.r.min-1; r <= range.r.max+1; r++){
 						h = this.drawHex(q,r);
 						if(this.options.showgrid){
 							hex = svgEl('path');
 							setAttr(hex,{'d':h.path,'class':'hex-grid','data-q':q,'data-r':r,'fill':(this.style.grid.fill||''),'fill-opacity':(this.style.grid['fill-opacity']||0.1),'stroke':(this.style.grid.stroke||'#aaa'),'stroke-opacity':(this.style.grid['stroke-opacity']||0.2)});
-							addEvent('mouseover',{type:'grid',hexmap:this,data:{'r':r,'q':q}},events.mouseover);
-							addEvent('mouseout',{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.mouseout);
-							addEvent('click',{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.click);
 							add(hex,this.grid);
+							addEvent('mouseover',hex,{type:'grid',hexmap:this,data:{'r':r,'q':q}},events.mouseover);
+							addEvent('mouseout',hex,{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.mouseout);
+							addEvent('click',hex,{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.click);
 						}
 					}
 				}
 				add(this.grid,svg);
 			}
 
-			var min,max,_obj,defs,path,label,hexclip,id;
+			var min,max,_obj,defs,path,label,hexclip,id,g;
 			min = 50000;
 			max = 80000;
 			_obj = this;
@@ -492,7 +527,7 @@
 						path.innerHTML = '<title>'+(this.mapping.hexes[r].n || r)+'</title>';
 						setAttr(path,{'d':h.path,'class':'hex-cell','transform-origin':h.x+'px '+h.y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r});
 						g.appendChild(path);
-						this.areas[r] = {'g':g,'hex':path,'selected':false,'active':true,'data':this.mapping.hexes[r]};
+						this.areas[r] = {'g':g,'hex':path,'selected':false,'active':true,'data':this.mapping.hexes[r],'orig':h};
 
 						// Attach events to our SVG group nodes
 						addEvent('mouseover',g,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r],pop:this.mapping.hexes[r].p},events.mouseover);
@@ -514,8 +549,8 @@
 								label = svgEl('text');
 								// Add to DOM
 								g.appendChild(label);
-								label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(getComputedStyle(label)['font-size'])});
-								setAttr(label,{'x':h.x,'y':h.y,'transform-origin':h.x+'px '+h.y+'px','dominant-baseline':'central','clip-path':'url(#'+this.areas[r].clipid+')','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','title':(this.mapping.hexes[r].n || r),'_region':r});
+								label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(getComputedStyle(label)['font-size'])});
+								setAttr(label,{'x':h.x,'y':h.y,'transform-origin':h.x+'px '+h.y+'px','dominant-baseline':'central','clip-path':'url(#'+this.areas[r].clipid+')','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[r].n || r),'_region':r});
 								this.areas[r].label = label;
 								this.areas[r].labelprops = {x:h.x,y:h.y};
 							}
@@ -531,14 +566,13 @@
 
 			return this;
 		};
-			
+
 		this.size();
 		if(attr.hexjson) this.load(attr.hexjson,attr.ready);
 
 		return this;
-	
 	}
-	ODI.hexmap = HexMap;
+	OI.hexmap = HexMap;
 
 	// Helper functions
 	var ns = 'http://www.w3.org/2000/svg';
@@ -571,6 +605,5 @@
 		return str;
 	}
 
-	root.ODI = ODI;
-
+	root.OI = OI;
 })(window || this);
