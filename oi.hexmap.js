@@ -1,5 +1,7 @@
 /**
 	OI hex map in SVG
+	0.6.2:
+	    - allow multiple callbacks to be added with .on()
 	0.6.1:
 		- bug fixes
 	0.6.0:
@@ -55,31 +57,16 @@
 	//      size: the size of a hexagon in pixels
 	function HexMap(el,attr){
 
-		this.version = "0.6.1";
+		this.version = "0.6.2";
 		if(!attr) attr  = {};
 		this._attr = attr;
 		this.title = "OI HexMap";
 		this.logging = (location.search.indexOf('debug=true') >= 0);
-		this.log = function(){
-			// Version 1.1
-			if(this.logging || arguments[0]=="ERROR" || arguments[0]=="WARNING"){
-				var args = Array.prototype.slice.call(arguments, 0);
-				// Build basic result
-				var extra = ['%c'+this.title+'%c: '+args[1],'font-weight:bold;',''];
-				// If there are extra parameters passed we add them
-				if(args.length > 2) extra = extra.concat(args.splice(2));
-				if(console && typeof console.log==="function"){
-					if(arguments[0] == "ERROR") console.error.apply(null,extra);
-					else if(arguments[0] == "WARNING") console.warn.apply(null,extra);
-					else if(arguments[0] == "INFO") console.info.apply(null,extra);
-					else console.log.apply(null,extra);
-				}
-			}
-			return this;
-		};
+		var log = new Log({"title":"OI HexMap","version":this.version});
+		this.log = log.message;
 
 		if(!el){
-			this.log('WARNING','No DOM element to add to');
+			this.log('warn','No DOM element to add to');
 			return this;
 		}
 
@@ -151,23 +138,35 @@
 				fn = prop;
 				prop = "";
 			}
-			//if(typeof fn !== "function") return this;
 			function done(data,noload){
-				_obj.log('INFO','HexJSON',data);
 				_obj.setMapping(data);
 				if(noload) _obj.updateColours();
 				if(typeof fn==="function") fn.call(_obj,{'data':prop});
 			}
 			if(typeof file==="string"){
-				this.log('INFO','Loading '+file,prop,fn);
 				OI.ajax(file,{
 					'this': this,
 					'dataType':'json',
 					'success': function(data){ done(data); },
-					'error': function(e,prop){ this.log('ERROR','Unable to load '+file,prop); }
+					'error': function(e,prop){ this.log('error','Unable to load '+file,prop); }
 				});
 			}else if(typeof file==="object") done(file,true);
 			return this;
+		};
+		this.addHexes = function(data,prop,fn){
+			if(this.mapping.layout){
+				console.log(prop);
+				if(data.layout == this.mapping.layout){
+					// We want to add the hexagons and rebuild the map
+					for(var r in data.hexes){
+						this.mapping.hexes[r] = data.hexes[r];
+					}
+					data = this.mapping;
+				}else{
+					this.log('warn','Layout has changed so over-writing existing hexes.');
+				}
+			}
+			this.load(data,prop,fn);				
 		};
 
 		var _obj = this;
@@ -293,7 +292,8 @@
 			}
 			if(typeof fn !== "function") return this;
 			if(!this.callback) this.callback = {};
-			this.callback[type] = { 'fn': fn, 'attr': prop };
+			if(!this.callback[type]) this.callback[type] = [];
+			this.callback[type].push({ 'fn': fn, 'attr': prop });
 			return this;
 		};
 		this.size = function(w,h){
@@ -335,6 +335,8 @@
 			// Clear the canvas
 			svg.innerHTML = "";
 			this.areas = {};
+			if(this.grid) this.grid.remove();
+			delete this.grid;
 			constructed = false;
 			return this;
 		};
@@ -355,16 +357,39 @@
 			this.properties.shift = p[0];
 			this.properties.orientation = p[1];
 			
-			range = { 'r': {'min':1e100,'max':-1e100}, 'q': {'min':1e100,'max':-1e100} };
+			this.updateRange();
+
+			return this.initialized();
+		};
+		
+		this.updateRange = function(){
+
+			var region,p,s,q2,r2;
+			range = { 'r': {'min':Infinity,'max':-Infinity}, 'q': {'min':Infinity,'max':-Infinity} };
 			for(region in this.mapping.hexes){
 				if(this.mapping.hexes[region]){
-					p = updatePos(this.mapping.hexes[region].q,this.mapping.hexes[region].r,this.mapping.layout);
-					if(p.q > range.q.max) range.q.max = p.q;
-					if(p.q < range.q.min) range.q.min = p.q;
-					if(p.r > range.r.max) range.r.max = p.r;
-					if(p.r < range.r.min) range.r.min = p.r;
+					p = this.mapping.hexes[region];
+					q2 = p.q;
+					r2 = p.r;
+					// Calculate effective q,r (taking into account shifts)
+					if(this.mapping.layout=="odd-r" && p.r%2==1) q2 += 0.5;
+					if(this.mapping.layout=="even-r" && p.r%2==0) q2 += 0.5;
+					if(this.mapping.layout=="odd-q" && p.q%2==1) r2 += 0.5;
+					if(this.mapping.layout=="even-q" && p.q%2==0) r2 += 0.5;
+					if(q2 > range.q.max) range.q.max = q2;
+					if(q2 < range.q.min) range.q.min = q2;
+					if(r2 > range.r.max) range.r.max = r2;
+					if(r2 < range.r.min) range.r.min = r2;
 				}
 			}
+
+			// Add padding to range
+			range.q.min -= this.padding;
+			range.q.max += this.padding;
+			range.r.min -= this.padding;
+			range.r.max += this.padding;
+
+
 			// Find range and mid points
 			range.q.d = range.q.max-range.q.min;
 			range.r.d = range.r.max-range.r.min;
@@ -375,10 +400,10 @@
 			if(this.properties.orientation=="r") s = Math.min(0.5*tall/(range.r.d*0.75 + 1),(1/Math.sqrt(3))*wide/(range.q.d + 1));	// Pointy-topped
 			else s = Math.min((1/Math.sqrt(3))*tall/(range.r.d + 1),0.5*wide/(range.q.d*0.75 + 1));	// Flat-topped
 
+			// If we've passed a specific size for the hexes we use that otherwise we work it out
 			if(typeof attr.size!=="number") this.setHexSize(s);
 			this.setSize();
-
-			return this.initialized();
+			return this;
 		};
 
 		this.setSize = function(size){
@@ -446,41 +471,20 @@
 		this.draw = function(){			
 			var r,q,h,hex,region;
 
+			this.updateRange();
 			var range = this.range;
-			for(region in this.mapping.hexes){
-				if(this.mapping.hexes[region]){
-					q = this.mapping.hexes[region].q;
-					r = this.mapping.hexes[region].r;
-					if(q > range.q.max) range.q.max = q;
-					if(q < range.q.min) range.q.min = q;
-					if(r > range.r.max) range.r.max = r;
-					if(r < range.r.min) range.r.min = r;
-				}
-			}
-			
-			// Add padding to range
-			range.q.min -= this.padding;
-			range.q.max += this.padding;
-			range.r.min -= this.padding;
-			range.r.max += this.padding;
-		
-			// q,r coordinate of the centre of the range
-			var qp = (range.q.max+range.q.min)/2;
-			var rp = (range.r.max+range.r.min)/2;
-			
-			this.properties.x = (this.w/2) - (this.properties.s.cos * 2 *qp);
-			this.properties.y = (this.h/2) + (this.properties.s.sin * 3 *rp);
-
-			// Store this for use elsewhere
-			this.range = clone(range);
 
 			function ev(e,t){
+				var rtn = [];
 				if(e.data.hexmap.callback[t]){
-					for(var a in e.data.hexmap.callback[t].attr){
-						if(e.data.hexmap.callback[t].attr[a]) e.data[a] = e.data.hexmap.callback[t].attr[a];
+					for(var c = 0; c < e.data.hexmap.callback[t].length; c++){
+						for(var a in e.data.hexmap.callback[t][c].attr){
+							if(e.data.hexmap.callback[t][c].attr[a]) e.data[a] = e.data.hexmap.callback[t][c].attr[a];
+						}
+						if(typeof e.data.hexmap.callback[t][c].fn==="function") rtn.push(e.data.hexmap.callback[t][c].fn.call(e.data['this']||this,e));
 					}
-					if(typeof e.data.hexmap.callback[t].fn==="function") return e.data.hexmap.callback[t].fn.call(e.data['this']||this,e);
-				}				
+				}
+				return rtn||false;
 			}
 			var events = {
 				'mouseover': function(e){ if(e.data.region){ e.data.hexmap.regionFocus(e.data.region); } ev(e,'mouseover'); },
@@ -495,7 +499,7 @@
 						h = this.drawHex(q,r);
 						if(this.options.showgrid){
 							hex = svgEl('path');
-							setAttr(hex,{'d':h.path,'class':'hex-grid','data-q':q,'data-r':r,'fill':(this.style.grid.fill||''),'fill-opacity':(this.style.grid['fill-opacity']||0.1),'stroke':(this.style.grid.stroke||'#aaa'),'stroke-opacity':(this.style.grid['stroke-opacity']||0.2)});
+							setAttr(hex,{'d':h.path,'class':'hex-grid','data-q':(q||"0"),'data-r':(r||"0"),'fill':(this.style.grid.fill||''),'fill-opacity':(this.style.grid['fill-opacity']||0.1),'stroke':(this.style.grid.stroke||'#aaa'),'stroke-opacity':(this.style.grid['stroke-opacity']||0.2)});
 							add(hex,this.grid);
 							addEvent('mouseover',hex,{type:'grid',hexmap:this,data:{'r':r,'q':q}},events.mouseover);
 							addEvent('mouseout',hex,{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.mouseout);
@@ -573,6 +577,27 @@
 		return this;
 	}
 	OI.hexmap = HexMap;
+
+	function Log(opt){
+		// Console logging version 2.0
+		if(!opt) opt = {};
+		if(!opt.title) opt.title = "Log";
+		if(!opt.version) opt.version = "2.0";
+		this.message = function(...args){
+			var t = args.shift();
+			if(typeof t!=="string") t = "log";
+			var ext = ['%c'+opt.title+' '+opt.version+'%c'];
+			if(args.length > 0){
+				ext[0] += ':';
+				if(typeof args[0]==="string") ext[0] += ' '+args.shift();
+			}
+			ext.push('font-weight:bold;');
+			ext.push('');
+			if(args.length > 0) ext = ext.concat(args);
+			console[t].apply(null,ext);
+		};
+		return this;
+	}
 
 	// Helper functions
 	var ns = 'http://www.w3.org/2000/svg';
