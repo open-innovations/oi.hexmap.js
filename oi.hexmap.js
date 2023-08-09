@@ -1,7 +1,11 @@
 /**
 	OI hex map in SVG
+	0.6.4:
+		- Remove browser tooltip
+	0.6.3:
+		- fitToRange()
 	0.6.2:
-	    - allow multiple callbacks to be added with .on()
+		- allow multiple callbacks to be added with .on()
 	0.6.1:
 		- bug fixes
 	0.6.0:
@@ -57,7 +61,7 @@
 	//      size: the size of a hexagon in pixels
 	function HexMap(el,attr){
 
-		this.version = "0.6.2";
+		this.version = "0.6.3";
 		if(!attr) attr  = {};
 		this._attr = attr;
 		this.title = "OI HexMap";
@@ -389,6 +393,11 @@
 			range.r.min -= this.padding;
 			range.r.max += this.padding;
 
+			// Make sure range is whole numbers
+			range.q.min = Math.floor(range.q.min);
+			range.q.max = Math.ceil(range.q.max);
+			range.r.min = Math.floor(range.r.min);
+			range.r.max = Math.ceil(range.r.max);
 
 			// Find range and mid points
 			range.q.d = range.q.max-range.q.min;
@@ -397,13 +406,24 @@
 			range.r.mid = range.r.min + range.r.d/2;
 			this.range = clone(range);
 
-			if(this.properties.orientation=="r") s = Math.min(0.5*tall/(range.r.d*0.75 + 1),(1/Math.sqrt(3))*wide/(range.q.d + 1));	// Pointy-topped
-			else s = Math.min((1/Math.sqrt(3))*tall/(range.r.d + 1),0.5*wide/(range.q.d*0.75 + 1));	// Flat-topped
-
 			// If we've passed a specific size for the hexes we use that otherwise we work it out
-			if(typeof attr.size!=="number") this.setHexSize(s);
+			if(typeof attr.size!=="number") this.setHexSize(this.estimateSize());
 			this.setSize();
 			return this;
+		};
+
+		this.fitToRange = function(){
+			this.updateRange();
+			this.setHexSize(this.estimateSize());
+			this.setSize();
+			return this;
+		};
+
+		this.estimateSize = function(){
+			var s;
+			if(this.properties.orientation=="r") s = Math.min(0.5*tall/(range.r.d*0.75 + 1),(1/Math.sqrt(3))*wide/(range.q.d + 1));	// Pointy-topped
+			else s = Math.min((1/Math.sqrt(3))*tall/(range.r.d + 1),0.5*wide/(range.q.d*0.75 + 1));	// Flat-topped
+			return s;
 		};
 
 		this.setSize = function(size){
@@ -494,8 +514,8 @@
 			if((this.options.showgrid || this.options.clip) && !this.grid){
 				this.grid = svgEl('g');
 				setAttr(this.grid,{'class':'hex-grid-holder'});
-				for(q = range.q.min-1; q <= range.q.max+1; q++){
-					for(r = range.r.min-1; r <= range.r.max+1; r++){
+				for(q = range.q.min; q <= range.q.max; q++){
+					for(r = range.r.min; r <= range.r.max; r++){
 						h = this.drawHex(q,r);
 						if(this.options.showgrid){
 							hex = svgEl('path');
@@ -528,7 +548,6 @@
 						setAttr(g,{'data':r});
 						svg.appendChild(g);
 						path = svgEl('path');
-						path.innerHTML = '<title>'+(this.mapping.hexes[r].n || r)+'</title>';
 						setAttr(path,{'d':h.path,'class':'hex-cell','transform-origin':h.x+'px '+h.y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r});
 						g.appendChild(path);
 						this.areas[r] = {'g':g,'hex':path,'selected':false,'active':true,'data':this.mapping.hexes[r],'orig':h};
