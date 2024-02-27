@@ -294,8 +294,9 @@
 			</section>
 
 			<section class="example" id="ex3">
-				<h2>Using external data and adding tooltips</h2>
+				<h2>Using external data, adding tooltips, styling boundaries</h2>
 				<p>This example loads in an external HexJSON file, loads in some data, and then colours the hexes depending on the data. To work out the colours we'll make a little helper function <code>ColourScale</code>.</p>
+				<p>This example also styles the <code>lines</code> defined in the HexJSON by calling <code>this.updateLines(fn)</code> with a function, <code>fn</code>, that takes the line ID as a parameter. This could let us style each line differently but, in this example, we will just apply <code>{'stroke':'black','stroke-width':4,'stroke-linecap':'round'}</code> to all the lines.</p>
 				<div class="example-code">
 					<style>
 					#hexmap3 { height: 800px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
@@ -362,6 +363,8 @@
 										this.data = data;
 										// Update the hex colours
 										this.updateColours(function(r){ return viridis.getValue(data[r],min,max); });
+										// Update the line styles
+										this.updateLines(function(n){ return {'stroke':'#ccc','stroke-width':3,'stroke-dasharray':'4 4','stroke-linecap':'round'}; });
 									},
 									'error':function(e,attr){ this.log('ERROR','Unable to load ',attr.url,attr); }
 								});
@@ -398,7 +401,7 @@
 	</div>
 	<footer>
 		<div class="holder">
-		<p>&copy; 2022 <a href="https://open-innovations.org/" target="_parent">Open Innovations</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_parent">CC BY</a>). Find the <a href="https://github.com/open-innovations/oi.hexmap.js">code on Github</a>.</p>
+		<p>&copy; 2022-2024 <a href="https://open-innovations.org/" target="_parent">Open Innovations</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_parent">CC BY</a>). Find the <a href="https://github.com/open-innovations/oi.hexmap.js">code on Github</a>.</p>
 		</div>
 	</footer>
 	<script src="resources/oi.formatexamples.js"></script>

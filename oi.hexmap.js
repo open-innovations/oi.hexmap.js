@@ -1,5 +1,7 @@
 /**
 	OI hex map in SVG
+	0.7.0:
+	    - Draw boundary lines
 	0.6.4:
 		- Remove browser tooltip
 	0.6.3:
@@ -61,7 +63,7 @@
 	//      size: the size of a hexagon in pixels
 	function HexMap(el,attr){
 
-		this.version = "0.6.3";
+		this.version = "0.7.0";
 		if(!attr) attr  = {};
 		this._attr = attr;
 		this.title = "OI HexMap";
@@ -86,7 +88,7 @@
 		this.maxh = tall;
 		var aspectratio = wide/tall;
 		var constructed = false;
-		var svg;
+		var svg,hexes,lines,overlay;
 		var range = {};
 		var fs = parseFloat(getComputedStyle(el)['font-size'])||16;
 		this.areas = {};
@@ -157,21 +159,6 @@
 			}else if(typeof file==="object") done(file,true);
 			return this;
 		};
-		this.addHexes = function(data,prop,fn){
-			if(this.mapping.layout){
-				console.log(prop);
-				if(data.layout == this.mapping.layout){
-					// We want to add the hexagons and rebuild the map
-					for(var r in data.hexes){
-						this.mapping.hexes[r] = data.hexes[r];
-					}
-					data = this.mapping;
-				}else{
-					this.log('warn','Layout has changed so over-writing existing hexes.');
-				}
-			}
-			this.load(data,prop,fn);				
-		};
 
 		var _obj = this;
 		// We'll need to change the sizes when the window changes size
@@ -207,17 +194,21 @@
 		}
 		
 		this.toFront = function(region){
+			// Move all the overlay children to hexes
+			var front = overlay.childNodes;
+			for(var i = 0; i < front.length; i++) add(front[i],hexes);
+	
 			if(this.areas[region]){
 				// Simulate a change of z-index by moving elements to the end of the SVG
 				// Keep selected items on top
 				for(var r in this.areas){
 					if(this.areas[r]){
-						if(this.areas[r].selected) add(this.areas[r].g,svg);
+						if(this.areas[r].selected) add(this.areas[r].g,overlay);
 						if(this.options.clip) setClip(this.areas[r]);
 					}
 				}
 				// Simulate a change of z-index by moving this element (hex and label) to the end of the SVG
-				add(this.areas[region].g,svg);
+				add(this.areas[region].g,overlay);
 			}
 			return this;
 		};
@@ -315,6 +306,16 @@
 				svg = svgEl('svg');
 				setAttr(svg,{'class':'hexmap-map','xmlns':ns,'version':'1.1','overflow':'visible','viewBox':(attr.viewBox||'0 0 '+w+' '+h),'style':'max-width:100%;','preserveAspectRatio':'xMinYMin meet','vector-effect':'non-scaling-stroke'});
 				add(svg,this.el);
+				// Create group for hexes
+				hexes = svgEl('g');
+				hexes.classList.add('data-layer');
+				hexes.setAttribute('role','list');
+				// Create group for lines
+				lines = svgEl('g');
+				lines.classList.add('lines');
+				// Create group for overlay
+				overlay = svgEl('g');
+				overlay.classList.add('overlay');
 			}
 			setAttr(svg,{'width':w,'height':h});
 			
@@ -346,10 +347,10 @@
 		};
 		
 		function updatePos(q,r,layout){
-			if(layout=="odd-r" && (r%2) != 0) q += 0.5;  // "odd-r" horizontal layout shoves odd rows right
-			if(layout=="even-r" && (r%2) == 0) q += 0.5; // "even-r" horizontal layout shoves even rows right
-			if(layout=="odd-q" && (q%2) != 0) r += 0.5;  // "odd-q" vertical layout shoves odd columns down
-			if(layout=="even-q" && (q%2) == 0) r += 0.5; // "even-q" vertical layout shoves even columns down
+			if(layout=="odd-r" && (r&1) != 0) q += 0.5;  // "odd-r" horizontal layout shoves odd rows right
+			if(layout=="even-r" && (r&1) == 0) q += 0.5; // "even-r" horizontal layout shoves even rows right
+			if(layout=="odd-q" && (q&1) != 0) r += 0.5;  // "odd-q" vertical layout shoves odd columns down
+			if(layout=="even-q" && (q&1) == 0) r += 0.5; // "even-q" vertical layout shoves even columns down
 			return {'q':q,'r':r};
 		}
 
@@ -376,10 +377,10 @@
 					q2 = p.q;
 					r2 = p.r;
 					// Calculate effective q,r (taking into account shifts)
-					if(this.mapping.layout=="odd-r" && p.r%2==1) q2 += 0.5;
-					if(this.mapping.layout=="even-r" && p.r%2==0) q2 += 0.5;
-					if(this.mapping.layout=="odd-q" && p.q%2==1) r2 += 0.5;
-					if(this.mapping.layout=="even-q" && p.q%2==0) r2 += 0.5;
+					if(this.mapping.layout=="odd-r" && p.r&1==1) q2 += 0.5;
+					if(this.mapping.layout=="even-r" && p.r&1==0) q2 += 0.5;
+					if(this.mapping.layout=="odd-q" && p.q&1==1) r2 += 0.5;
+					if(this.mapping.layout=="even-q" && p.q&1==0) r2 += 0.5;
 					if(q2 > range.q.max) range.q.max = q2;
 					if(q2 < range.q.min) range.q.min = q2;
 					if(r2 > range.r.max) range.r.max = r2;
@@ -433,7 +434,94 @@
 			this.properties.s.s = this.properties.s.sin.toFixed(2);
 			return this;
 		};
-
+		this.drawSegment = function(a,b,typ){
+			if(this.properties){
+				var x,y,cs,ss,path,p,dq,dr,oddrow,l,NE,NW,SE,SW,E,S,N,W;
+				cs = this.properties.s.cos;
+				ss = this.properties.s.sin;
+				if(typeof a.length==="number") a = {'q':a[0],'r':a[1]};
+				if(typeof b.length==="number") b = {'q':b[0],'r':b[1]};
+				// Move to centre of first hexagon
+				p = updatePos(a.q,a.r,this.mapping.layout);
+				if(this.properties.orientation=="r"){
+					// Pointy topped
+					x = (wide/2) + ((p.q-this.range.q.mid) * cs * 2);
+					y = (tall/2) - ((p.r-this.range.r.mid) * ss * 3);
+				}else{
+					// Flat topped
+					x = (wide/2) + ((p.q-this.range.q.mid) * ss * 3);
+					y = (tall/2) - ((p.r-this.range.r.mid) * cs * 2);
+				}
+				x = parseFloat(x.toFixed(1));
+				dq = a.q - b.q;
+				dr = a.r - b.r;
+				oddrow = a.r&1;
+				l = [];
+				if(this.properties.orientation == "r"){
+					NE = [x,(y-2*ss),cs,ss];
+					NW = [(x-cs),(y-ss),cs,-ss];
+					SE = [(x+cs),(y+ss),-cs,ss];
+					SW = [x,(y+2*ss),-cs,-ss];
+					E = [(x+cs),(y-ss),0,(2*ss)];
+					W = [(x-cs),(y+ss),0,(-2*ss)];
+					if(dr == 0){
+						if(dq==-1) l = E;
+						if(dq==1) l = W;
+					}else{
+						if(this.mapping.layout=="odd-r"){
+							if(oddrow){
+								if(dq==-1 && dr==-1) l = NE
+								if(dq==-1 && dr==1) l = SE;
+								if(dq==0 && dr==-1) l = NW;
+								if(dq==0 && dr==1) l = SW;
+							}else{
+								if(dq==0 && dr==-1) l = NE;
+								if(dq==0 && dr==1) l = SE;
+								if(dq==1 && dr==-1) l = NW;
+								if(dq==1 && dr==1) l = SW;
+							}
+						}else{
+							if(oddrow){
+								if(dq==0 && dr==-1) l = NE;
+								if(dq==0 && dr==1) l = SE;
+								if(dq==1 && dr==-1) l = NW;
+								if(dq==1 && dr==1) l = SW;
+							}else{
+								if(dq==-1 && dr==-1) l = NE;
+								if(dq==-1 && dr==1) l = SE;
+								if(dq==0 && dr==-1) l = NW;
+								if(dq==0 && dr==1) l = SW;
+							}						
+						}
+					}
+				}else{
+					N = [(x-ss),(y-cs),(2*ss),0];
+					S = [(x+ss),(y+cs),(-2*ss),0];
+					NE = [(x+ss),y-cs,ss,cs];
+					NW = [(x-2*ss),y,ss,-cs];
+					SE = [(x+2*ss),y,-ss,cs];
+					SW = [(x-ss),y+cs,-ss,-cs];
+					if(dq==0){
+						if(dr==-1) l = N;
+						if(dr==1) l = S;
+					}else{
+						if(this.mapping.layout=="odd-q"){
+							if(dr==0 && dq==-1) l = NE;
+							if(dr==1 && dq==-1) l = SE;
+							if(dr==0 && dq==1) l = SW;
+							if(dr==-1 && dq==1) l = NW;
+						}else{
+							if(dr==-1 && dq==-1) l = NE;
+							if(dr==0 && dq==-1) l = SE;
+							if(dr==1 && dq==1) l = SW;
+							if(dr==0 && dq==1) l = NW;							
+						}
+					}
+				}
+				return (typeof typ==="string" ? typ : 'M')+l[0].toFixed(2)+','+l[1].toFixed(2)+'l'+l[2].toFixed(2)+','+l[3].toFixed(2);
+			}
+			return this;
+		};
 		this.drawHex = function(q,r){
 			if(this.properties){
 				var x,y,cs,ss,path,p;
@@ -488,6 +576,16 @@
 			return this;
 		};
 		
+		this.updateLines = function(fn){
+			var props;
+			if(typeof fn!=="function") fn = function(){ return {}; };
+			for(var n in this.mapping.borders){
+				props = fn.call(this,n)||{};
+				props.fill = "none";
+				if(this.lines[n]) setAttr(this.lines[n],props);
+			}
+		};
+		
 		this.draw = function(){			
 			var r,q,h,hex,region;
 
@@ -538,52 +636,77 @@
 			add(defs,svg);
 			id = (el.getAttribute('id')||'hex');
 
-			for(r in this.mapping.hexes){
-				if(this.mapping.hexes[r]){
+			// Create hexagons
+			if(this.mapping.hexes){
+				add(hexes,svg);
+				for(r in this.mapping.hexes){
+					if(this.mapping.hexes[r]){
 
-					h = this.drawHex(this.mapping.hexes[r].q,this.mapping.hexes[r].r);
+						h = this.drawHex(this.mapping.hexes[r].q,this.mapping.hexes[r].r);
 
-					if(!constructed){
-						g = svgEl('g');
-						setAttr(g,{'data':r});
-						svg.appendChild(g);
-						path = svgEl('path');
-						setAttr(path,{'d':h.path,'class':'hex-cell','transform-origin':h.x+'px '+h.y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r});
-						g.appendChild(path);
-						this.areas[r] = {'g':g,'hex':path,'selected':false,'active':true,'data':this.mapping.hexes[r],'orig':h};
+						if(!constructed){
+							g = svgEl('g');
+							setAttr(g,{'data':r,'role':'listitem'});
+							hexes.appendChild(g);
+							path = svgEl('path');
+							setAttr(path,{'d':h.path,'class':'hex-cell hex','transform-origin':h.x+'px '+h.y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r});
+							g.appendChild(path);
+							this.areas[r] = {'g':g,'hex':path,'selected':false,'active':true,'data':this.mapping.hexes[r],'orig':h};
 
-						// Attach events to our SVG group nodes
-						addEvent('mouseover',g,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r],pop:this.mapping.hexes[r].p},events.mouseover);
-						addEvent('mouseout',g,{type:'hex',hexmap:this,region:r,me:this.areas[r]},events.mouseout);
-						addEvent('click',g,{type:'hex',hexmap:this,region:r,me:this.areas[r],data:this.mapping.hexes[r]},events.click);
+							// Attach events to our SVG group nodes
+							addEvent('mouseover',g,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r],pop:this.mapping.hexes[r].p},events.mouseover);
+							addEvent('mouseout',g,{type:'hex',hexmap:this,region:r,me:this.areas[r]},events.mouseout);
+							addEvent('click',g,{type:'hex',hexmap:this,region:r,me:this.areas[r],data:this.mapping.hexes[r]},events.click);
 
-						if(this.options.showlabel){
-							if(this.style['default']['font-size'] >= this.options.minFontSize){
-								if(this.options.clip){
-									// Make all the clipping areas
-									this.areas[r].clipid = (el.getAttribute('id')||'hex')+'-clip-'+r;
-									this.areas[r].clip = svgEl('clipPath');
-									this.areas[r].clip.setAttribute('id',this.areas[r].clipid);
-									hexclip = svgEl('path');
-									setAttr(hexclip,{'d':h.path,'transform-origin':h.x+'px '+h.y+'px'});
-									add(hexclip,this.areas[r].clip);
-									add(this.areas[r].clip,defs);
+							if(this.options.showlabel){
+								if(this.style['default']['font-size'] >= this.options.minFontSize){
+									if(this.options.clip){
+										// Make all the clipping areas
+										this.areas[r].clipid = (el.getAttribute('id')||'hex')+'-clip-'+r;
+										this.areas[r].clip = svgEl('clipPath');
+										this.areas[r].clip.setAttribute('id',this.areas[r].clipid);
+										hexclip = svgEl('path');
+										setAttr(hexclip,{'d':h.path,'transform-origin':h.x+'px '+h.y+'px'});
+										add(hexclip,this.areas[r].clip);
+										add(this.areas[r].clip,defs);
+									}
+									label = svgEl('text');
+									// Add to DOM
+									g.appendChild(label);
+									label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(getComputedStyle(label)['font-size'])});
+									setAttr(label,{'x':h.x,'y':h.y,'transform-origin':h.x+'px '+h.y+'px','dominant-baseline':'central','clip-path':'url(#'+this.areas[r].clipid+')','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[r].n || r),'_region':r});
+									this.areas[r].label = label;
+									this.areas[r].labelprops = {x:h.x,y:h.y};
 								}
-								label = svgEl('text');
-								// Add to DOM
-								g.appendChild(label);
-								label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(getComputedStyle(label)['font-size'])});
-								setAttr(label,{'x':h.x,'y':h.y,'transform-origin':h.x+'px '+h.y+'px','dominant-baseline':'central','clip-path':'url(#'+this.areas[r].clipid+')','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[r].n || r),'_region':r});
-								this.areas[r].label = label;
-								this.areas[r].labelprops = {x:h.x,y:h.y};
 							}
-						}
 
+						}
+						this.setHexStyle(r);
+						setAttr(this.areas[r].hex,{'stroke':this.style['default'].stroke,'stroke-opacity':this.style['default']['stroke-opacity'],'stroke-width':this.style['default']['stroke-width'],'title':this.mapping.hexes[r].n,'data-regions':r,'style':'cursor: pointer;'});
 					}
-					this.setHexStyle(r);
-					setAttr(this.areas[r].hex,{'stroke':this.style['default'].stroke,'stroke-opacity':this.style['default']['stroke-opacity'],'stroke-width':this.style['default']['stroke-width'],'title':this.mapping.hexes[r].n,'data-regions':r,'style':'cursor: pointer;'});
 				}
 			}
+
+			// Create lines
+			if(this.mapping.borders){
+				add(lines,svg);
+
+				var n,s,seg,d,props;
+				this.lines = {};
+				for(n in this.mapping.borders){
+					d = "";
+					for(s = 0; s < this.mapping.borders[n].length; s++){
+						seg = this.mapping.borders[n][s];
+						d += this.drawSegment(seg[0],seg[1],(s == 0 ? 'M':'L'));
+					}
+					this.lines[n] = svgEl('path');
+					setAttr(this.lines[n],{'d':d});
+					lines.append(this.lines[n]);
+				}
+				this.updateLines();
+			}
+
+			if(this.mapping.hexes) add(overlay,svg);
 
 			constructed = true;
 

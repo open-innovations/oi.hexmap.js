@@ -31,6 +31,8 @@
 			markup = el.innerHTML;
 
 			// Make JSON files into links
+			markup = markup.replace(/([\"\'])([^\"\']*\.geojson)([\"\'])/g,function(m,p1,p2,p3){ return p1+'<a href="'+p2+'">'+p2+'</a>'+p3; });
+			markup = markup.replace(/([\"\'])([^\"\']*\.hexjson)([\"\'])/g,function(m,p1,p2,p3){ return p1+'<a href="'+p2+'">'+p2+'</a>'+p3; });
 			markup = markup.replace(/([\"\'])([^\"\']*\.json)([\"\'])/g,function(m,p1,p2,p3){ return p1+'<a href="'+p2+'">'+p2+'</a>'+p3; });
 			
 			markup = deindent(markup).replace(/[\n\t]*$/,"").replace(/^[\n\t]*/,"");
