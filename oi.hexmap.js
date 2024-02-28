@@ -674,7 +674,7 @@
 						for(s = 0; s < boundaries[n].edges.length; s++){
 							edge = this.getEdge(boundaries[n].edges[s]);
 							if(edge){
-								join = (prevedge && !(edge[0]==prevedge[4] && edge[1]==prevedge[5])) ? 'L' : 'M';
+								join = (prevedge && (edge[0]==prevedge[4] && edge[1]==prevedge[5])) ? 'L' : 'M';
 								d += join+roundTo(edge[0],2)+' '+roundTo(edge[1],2)+'l'+roundTo(edge[2],2)+' '+roundTo(edge[3],2);
 								prevedge = edge;
 							}
