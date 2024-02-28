@@ -50,6 +50,11 @@
 		return this;
 	}
 	if(!OI.ajax) OI.ajax = AJAX;
+	
+	function roundTo(v,prec){
+		if(typeof v==="number") v = v.toFixed(prec);
+		return v.replace(/\.([0-9]+)0+$/,function(m,p1){ return "."+p1; }).replace(/\.0+$/,"");
+	}
 
 	// Input structure:
 	//    el: the element to attach to
@@ -355,10 +360,9 @@
 		}
 
 		this.setMapping = function(mapping){
-			var region,p,s;
 			this.mapping = mapping;
 			if(!this.properties) this.properties = { "x": 100, "y": 100 };
-			p = mapping.layout.split("-");
+			var p = mapping.layout.split("-");
 			this.properties.shift = p[0];
 			this.properties.orientation = p[1];
 			
@@ -369,7 +373,7 @@
 		
 		this.updateRange = function(){
 
-			var region,p,s,q2,r2;
+			var region,p,q2,r2;
 			range = { 'r': {'min':Infinity,'max':-Infinity}, 'q': {'min':Infinity,'max':-Infinity} };
 			for(region in this.mapping.hexes){
 				if(this.mapping.hexes[region]){
@@ -434,93 +438,61 @@
 			this.properties.s.s = this.properties.s.sin.toFixed(2);
 			return this;
 		};
-		this.drawSegment = function(a,b,typ){
+
+		this.getEdge = function(h){
 			if(this.properties){
-				var x,y,cs,ss,path,p,dq,dr,oddrow,l,NE,NW,SE,SW,E,S,N,W;
+				var x,y,cs,ss,p,edges,positive,e;
 				cs = this.properties.s.cos;
 				ss = this.properties.s.sin;
-				if(typeof a.length==="number") a = {'q':a[0],'r':a[1]};
-				if(typeof b.length==="number") b = {'q':b[0],'r':b[1]};
-				// Move to centre of first hexagon
-				p = updatePos(a.q,a.r,this.mapping.layout);
-				if(this.properties.orientation=="r"){
-					// Pointy topped
-					x = (wide/2) + ((p.q-this.range.q.mid) * cs * 2);
-					y = (tall/2) - ((p.r-this.range.r.mid) * ss * 3);
-				}else{
-					// Flat topped
-					x = (wide/2) + ((p.q-this.range.q.mid) * ss * 3);
-					y = (tall/2) - ((p.r-this.range.r.mid) * cs * 2);
-				}
-				x = parseFloat(x.toFixed(1));
-				dq = a.q - b.q;
-				dr = a.r - b.r;
-				oddrow = a.r&1;
-				l = [];
-				if(this.properties.orientation == "r"){
-					NE = [x,(y-2*ss),cs,ss];
-					NW = [(x-cs),(y-ss),cs,-ss];
-					SE = [(x+cs),(y+ss),-cs,ss];
-					SW = [x,(y+2*ss),-cs,-ss];
-					E = [(x+cs),(y-ss),0,(2*ss)];
-					W = [(x-cs),(y+ss),0,(-2*ss)];
-					if(dr == 0){
-						if(dq==-1) l = E;
-						if(dq==1) l = W;
+
+				e = Math.abs(h.e);
+				positive = (h.e >= 0);
+				if(typeof h.q==="number" && typeof h.r==="number" && typeof e==="number" && e >= 1 && e <= 6){
+					// Move to centre of first hexagon
+					p = updatePos(h.q,h.r,this.mapping.layout);
+					if(this.properties.orientation=="r"){
+						// Pointy topped
+						x = (wide/2) + ((p.q-this.range.q.mid) * cs * 2);
+						y = (tall/2) - ((p.r-this.range.r.mid) * ss * 3);
 					}else{
-						if(this.mapping.layout=="odd-r"){
-							if(oddrow){
-								if(dq==-1 && dr==-1) l = NE
-								if(dq==-1 && dr==1) l = SE;
-								if(dq==0 && dr==-1) l = NW;
-								if(dq==0 && dr==1) l = SW;
-							}else{
-								if(dq==0 && dr==-1) l = NE;
-								if(dq==0 && dr==1) l = SE;
-								if(dq==1 && dr==-1) l = NW;
-								if(dq==1 && dr==1) l = SW;
-							}
-						}else{
-							if(oddrow){
-								if(dq==0 && dr==-1) l = NE;
-								if(dq==0 && dr==1) l = SE;
-								if(dq==1 && dr==-1) l = NW;
-								if(dq==1 && dr==1) l = SW;
-							}else{
-								if(dq==-1 && dr==-1) l = NE;
-								if(dq==-1 && dr==1) l = SE;
-								if(dq==0 && dr==-1) l = NW;
-								if(dq==0 && dr==1) l = SW;
-							}						
-						}
+						// Flat topped
+						x = (wide/2) + ((p.q-this.range.q.mid) * ss * 3);
+						y = (tall/2) - ((p.r-this.range.r.mid) * cs * 2);
 					}
-				}else{
-					N = [(x-ss),(y-cs),(2*ss),0];
-					S = [(x+ss),(y+cs),(-2*ss),0];
-					NE = [(x+ss),y-cs,ss,cs];
-					NW = [(x-2*ss),y,ss,-cs];
-					SE = [(x+2*ss),y,-ss,cs];
-					SW = [(x-ss),y+cs,-ss,-cs];
-					if(dq==0){
-						if(dr==-1) l = N;
-						if(dr==1) l = S;
+					if(this.properties.orientation == "r"){
+						// Pointy-topped hex edges
+						edges = [
+							[x,(y-2*ss),cs,ss],
+							[(x+cs),(y-ss),0,(2*ss)],
+							[(x+cs),(y+ss),-cs,ss],
+							[x,(y+2*ss),-cs,-ss],
+							[(x-cs),(y+ss),0,(-2*ss)],
+							[(x-cs),(y-ss),cs,-ss]
+						];
 					}else{
-						if(this.mapping.layout=="odd-q"){
-							if(dr==0 && dq==-1) l = NE;
-							if(dr==1 && dq==-1) l = SE;
-							if(dr==0 && dq==1) l = SW;
-							if(dr==-1 && dq==1) l = NW;
-						}else{
-							if(dr==-1 && dq==-1) l = NE;
-							if(dr==0 && dq==-1) l = SE;
-							if(dr==1 && dq==1) l = SW;
-							if(dr==0 && dq==1) l = NW;							
-						}
+						// Flat-topped hex edges
+						edges = [
+							[(x-ss),(y-cs),(2*ss),0],
+							[(x+ss),y-cs,ss,cs],
+							[(x+2*ss),y,-ss,cs],
+							[(x+ss),(y+cs),(-2*ss),0],
+							[(x-ss),y+cs,-ss,-cs],
+							[(x-2*ss),y,ss,-cs]
+						];
 					}
+					e = edges[e-1];
+					e[4] = e[0]+e[2];
+					e[5] = e[1]+e[3];
+					if(!positive) e = [e[4],e[5],-e[2],-e[3],e[0],e[1]];
+					// Round numbers to avoid floating point uncertainty
+					e[0] = roundTo(e[0],3);
+					e[1] = roundTo(e[1],3);
+					e[4] = roundTo(e[4],3);
+					e[5] = roundTo(e[5],3);
+					return e;
 				}
-				return (typeof typ==="string" ? typ : 'M')+l[0].toFixed(2)+','+l[1].toFixed(2)+'l'+l[2].toFixed(2)+','+l[3].toFixed(2);
 			}
-			return this;
+			return null;
 		};
 		this.drawHex = function(q,r){
 			if(this.properties){
@@ -558,7 +530,7 @@
 		};
 
 		this.updateColours = function(fn){
-			var r,fill;
+			var r;
 			if(typeof fn!=="function"){
 				fn = function(){
 					var fill = this.style['default'].fill;
@@ -576,18 +548,18 @@
 			return this;
 		};
 		
-		this.updateLines = function(fn){
-			var props;
+		this.updateBoundaries = function(fn){
+			var props,n;
 			if(typeof fn!=="function") fn = function(){ return {}; };
-			for(var n in this.mapping.borders){
-				props = fn.call(this,n)||{};
+			for(n in this.mapping.boundaries){
+				props = fn.call(this,n,this.mapping.boundaries[n])||{};
 				props.fill = "none";
 				if(this.lines[n]) setAttr(this.lines[n],props);
 			}
 		};
 		
 		this.draw = function(){			
-			var r,q,h,hex,region;
+			var r,q,h,hex;
 
 			this.updateRange();
 			var range = this.range;
@@ -688,22 +660,33 @@
 			}
 
 			// Create lines
-			if(this.mapping.borders){
+			if(this.mapping.boundaries){
 				add(lines,svg);
 
-				var n,s,seg,d,props;
+				var n,s,d,boundaries,prevedge,edge,join;
 				this.lines = {};
-				for(n in this.mapping.borders){
+				boundaries = this.mapping.boundaries;
+				for(n in boundaries){
 					d = "";
-					for(s = 0; s < this.mapping.borders[n].length; s++){
-						seg = this.mapping.borders[n][s];
-						d += this.drawSegment(seg[0],seg[1],(s == 0 ? 'M':'L'));
+					prevedge = null;
+					// Do we have edges?
+					if(boundaries[n].edges){
+						for(s = 0; s < boundaries[n].edges.length; s++){
+							edge = this.getEdge(boundaries[n].edges[s]);
+							if(edge){
+								join = (prevedge && !(edge[0]==prevedge[4] && edge[1]==prevedge[5])) ? 'L' : 'M';
+								d += join+roundTo(edge[0],2)+' '+roundTo(edge[1],2)+'l'+roundTo(edge[2],2)+' '+roundTo(edge[3],2);
+								prevedge = edge;
+							}
+						}
 					}
-					this.lines[n] = svgEl('path');
-					setAttr(this.lines[n],{'d':d});
-					lines.append(this.lines[n]);
+					if(d){
+						this.lines[n] = svgEl('path');
+						setAttr(this.lines[n],{'d':d,'data-name':n});
+						lines.append(this.lines[n]);
+					}
 				}
-				this.updateLines();
+				this.updateBoundaries();
 			}
 
 			if(this.mapping.hexes) add(overlay,svg);
