@@ -373,24 +373,29 @@
 		
 		this.updateRange = function(){
 
-			var region,p,q2,r2;
+			var region,p,q2,r2,xhalf;
+			
+			var xhalf = Math.sqrt(3)/4;
 			range = { 'r': {'min':Infinity,'max':-Infinity}, 'q': {'min':Infinity,'max':-Infinity} };
 			for(region in this.mapping.hexes){
 				if(this.mapping.hexes[region]){
 					p = this.mapping.hexes[region];
 					q2 = p.q;
 					r2 = p.r;
-					// Calculate effective q,r (taking into account shifts)
-					if(this.mapping.layout=="odd-r" && p.r&1==1) q2 += 0.5;
-					if(this.mapping.layout=="even-r" && p.r&1==0) q2 += 0.5;
-					if(this.mapping.layout=="odd-q" && p.q&1==1) r2 += 0.5;
-					if(this.mapping.layout=="even-q" && p.q&1==0) r2 += 0.5;
 					if(q2 > range.q.max) range.q.max = q2;
 					if(q2 < range.q.min) range.q.min = q2;
 					if(r2 > range.r.max) range.r.max = r2;
 					if(r2 < range.r.min) range.r.min = r2;
 				}
 			}
+			// Find range and mid points
+			range.q.d = range.q.max-range.q.min;
+			range.r.d = range.r.max-range.r.min;
+			range.q.mid = range.q.min + range.q.d/2;
+			range.r.mid = range.r.min + range.r.d/2;
+
+			if(this.properties.orientation=="r") range.q.mid += 0.25;
+			if(this.properties.orientation=="q") range.r.mid += 0.25;
 
 			// Add padding to range
 			range.q.min -= this.padding;
@@ -398,17 +403,6 @@
 			range.r.min -= this.padding;
 			range.r.max += this.padding;
 
-			// Make sure range is whole numbers
-			range.q.min = Math.floor(range.q.min);
-			range.q.max = Math.ceil(range.q.max);
-			range.r.min = Math.floor(range.r.min);
-			range.r.max = Math.ceil(range.r.max);
-
-			// Find range and mid points
-			range.q.d = range.q.max-range.q.min;
-			range.r.d = range.r.max-range.r.min;
-			range.q.mid = range.q.min + range.q.d/2;
-			range.r.mid = range.r.min + range.r.d/2;
 			this.range = clone(range);
 
 			// If we've passed a specific size for the hexes we use that otherwise we work it out
@@ -425,9 +419,30 @@
 		};
 
 		this.estimateSize = function(){
-			var s;
-			if(this.properties.orientation=="r") s = Math.min(0.5*tall/(range.r.d*0.75 + 1),(1/Math.sqrt(3))*wide/(range.q.d + 1));	// Pointy-topped
-			else s = Math.min((1/Math.sqrt(3))*tall/(range.r.d + 1),0.5*wide/(range.q.d*0.75 + 1));	// Flat-topped
+			var s,nx,ny;
+			if(this.properties.orientation=="r"){
+				if(range.r.d == 0){
+					nx = range.q.d + 1;
+					ny = 1;
+				}else if(range.r.d > 0){
+					nx = range.q.d + 1.5;
+					ny = range.r.d + 1;
+				} 
+				dy = (1.5*ny) + 0.5;
+				dx = nx*2;
+				return Math.min((2/Math.sqrt(3))*wide/dx,tall/dy)
+			}else{
+				if(range.q.d == 0){
+					nx = 1;
+					ny = range.r.d + 1;
+				}else if(range.q.d > 0){
+					nx = range.q.d + 1;
+					ny = range.r.d + 1.5;
+				}
+				dx = (1.5*nx) + 0.5;
+				dy = ny*2;
+				return Math.min(wide/dx,(2/Math.sqrt(3))*tall/dy)
+			}
 			return s;
 		};
 
@@ -511,8 +526,8 @@
 					x = (wide/2) + ((p.q-this.range.q.mid) * ss * 3);
 					y = (tall/2) - ((p.r-this.range.r.mid) * cs * 2);
 				}
-				x = parseFloat(x.toFixed(1));
-				path = [['M',[x,y]]];
+				//x = parseFloat(x.toFixed(1));
+				path = [['M',[roundTo(x,3),roundTo(y,3)]]];
 				if(this.properties.orientation == "r"){
 					// Pointy topped
 					path.push(['m',[cs,-ss]]);
@@ -600,7 +615,7 @@
 				add(this.grid,svg);
 			}
 
-			var min,max,_obj,defs,path,label,hexclip,id,g;
+			var min,max,_obj,defs,path,label,hexclip,id,g,x,y;
 			min = 50000;
 			max = 80000;
 			_obj = this;
@@ -617,11 +632,13 @@
 						h = this.drawHex(this.mapping.hexes[r].q,this.mapping.hexes[r].r);
 
 						if(!constructed){
+							x = roundTo(h.x,3);
+							y = roundTo(h.y,3);
 							g = svgEl('g');
 							setAttr(g,{'data':r,'role':'listitem'});
 							hexes.appendChild(g);
 							path = svgEl('path');
-							setAttr(path,{'d':h.path,'class':'hex-cell hex','transform-origin':h.x+'px '+h.y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r});
+							setAttr(path,{'d':h.path,'class':'hex-cell hex','transform-origin':x+'px '+y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r});
 							g.appendChild(path);
 							this.areas[r] = {'g':g,'hex':path,'selected':false,'active':true,'data':this.mapping.hexes[r],'orig':h};
 
@@ -646,9 +663,9 @@
 									// Add to DOM
 									g.appendChild(label);
 									label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(getComputedStyle(label)['font-size'])});
-									setAttr(label,{'x':h.x,'y':h.y,'transform-origin':h.x+'px '+h.y+'px','dominant-baseline':'central','clip-path':'url(#'+this.areas[r].clipid+')','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[r].n || r),'_region':r});
+									setAttr(label,{'x':x,'y':y,'transform-origin':x+'px '+y+'px','dominant-baseline':'central','clip-path':'url(#'+this.areas[r].clipid+')','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[r].n || r),'_region':r});
 									this.areas[r].label = label;
-									this.areas[r].labelprops = {x:h.x,y:h.y};
+									this.areas[r].labelprops = {x:x,y:y};
 								}
 							}
 
