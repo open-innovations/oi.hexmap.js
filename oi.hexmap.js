@@ -2,6 +2,7 @@
 	OI hex map in SVG
 	0.7.0:
 	    - Draw boundary lines
+		- Add patterns
 	0.6.4:
 		- Remove browser tooltip
 	0.6.3:
@@ -175,7 +176,7 @@
 			style = clone(this.style['default']);
 			cls = "";
 			if(h.active) style.fill = h.fillcolour;
-			if(h.hover) cls += ' hover';
+			if(h.hover) h.hex.classList.add('hover');
 			if(h.selected){
 				for(p in this.style.selected){
 					if(this.style.selected[p]) style[p] = this.style.selected[p];
@@ -183,14 +184,12 @@
 				cls += ' selected';
 			}
 			if(this.mapping.hexes[r]['class']) cls += " "+this.mapping.hexes[r]['class'];
-			style['class'] = 'hex-cell'+cls;
-			setAttr(h.hex,style);
-			if(h.label) setAttr(h.label,{'class':'hex-label'+cls});
+			setAttr(h.path,style);
 			return h;
 		};
 		
 		function setClip(h){
-			var sty = getComputedStyle(h.hex);
+			var sty = getComputedStyle(h.path);
 			var s = {};
 			if(sty.transform) s.transform = sty.transform;
 			if(s.transform=="none") s.transform = "";
@@ -208,12 +207,12 @@
 				// Keep selected items on top
 				for(var r in this.areas){
 					if(this.areas[r]){
-						if(this.areas[r].selected) add(this.areas[r].g,overlay);
+						if(this.areas[r].selected) add(this.areas[r].hex,overlay);
 						if(this.options.clip) setClip(this.areas[r]);
 					}
 				}
 				// Simulate a change of z-index by moving this element (hex and label) to the end of the SVG
-				add(this.areas[region].g,overlay);
+				add(this.areas[region].hex,overlay);
 			}
 			return this;
 		};
@@ -279,6 +278,15 @@
 						this.areas[region].selected = false;
 						this.setHexStyle(region);
 					}
+				}
+			}
+			return this;
+		};
+
+		this.setClass = function(fn){
+			if(typeof fn==="function"){
+				for(var region in this.areas){
+					fn.call(this,region,this.areas[region]);
 				}
 			}
 			return this;
@@ -622,6 +630,7 @@
 			defs = svgEl('defs');
 			add(defs,svg);
 			id = (el.getAttribute('id')||'hex');
+			if(attr.patterns) defs.innerHTML += attr.patterns.join("");
 
 			// Create hexagons
 			if(this.mapping.hexes){
@@ -635,12 +644,15 @@
 							x = roundTo(h.x,3);
 							y = roundTo(h.y,3);
 							g = svgEl('g');
-							setAttr(g,{'data':r,'role':'listitem'});
+							g.classList.add('hex');
+							if(this.mapping.hexes[r].class) g.classList.add(this.mapping.hexes[r].class);
+							setAttr(g,{'data-id':r,'role':'listitem'});
 							hexes.appendChild(g);
 							path = svgEl('path');
 							setAttr(path,{'d':h.path,'class':'hex-cell hex','transform-origin':x+'px '+y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r});
+
 							g.appendChild(path);
-							this.areas[r] = {'g':g,'hex':path,'selected':false,'active':true,'data':this.mapping.hexes[r],'orig':h};
+							this.areas[r] = {'hex':g,'path':path,'selected':false,'active':true,'data':this.mapping.hexes[r],'orig':h};
 
 							// Attach events to our SVG group nodes
 							addEvent('mouseover',g,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r],pop:this.mapping.hexes[r].p},events.mouseover);
@@ -662,8 +674,9 @@
 									label = svgEl('text');
 									// Add to DOM
 									g.appendChild(label);
-									label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(getComputedStyle(label)['font-size'])});
-									setAttr(label,{'x':x,'y':y,'transform-origin':x+'px '+y+'px','dominant-baseline':'central','clip-path':'url(#'+this.areas[r].clipid+')','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[r].n || r),'_region':r});
+									label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(this.style.default['font-size'])});
+									setAttr(label,{'x':x,'y':y,'transform-origin':x+'px '+y+'px','dominant-baseline':'central','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[r].n || r),'_region':r});
+									if(this.options.clip) setAttr(label,{'clip-path':'url(#'+this.areas[r].clipid+')'});
 									this.areas[r].label = label;
 									this.areas[r].labelprops = {x:x,y:y};
 								}
@@ -671,7 +684,7 @@
 
 						}
 						this.setHexStyle(r);
-						setAttr(this.areas[r].hex,{'stroke':this.style['default'].stroke,'stroke-opacity':this.style['default']['stroke-opacity'],'stroke-width':this.style['default']['stroke-width'],'title':this.mapping.hexes[r].n,'data-regions':r,'style':'cursor: pointer;'});
+						setAttr(this.areas[r].path,{'stroke':this.style['default'].stroke,'stroke-opacity':this.style['default']['stroke-opacity'],'stroke-width':this.style['default']['stroke-width'],'title':this.mapping.hexes[r].n,'data-regions':r,'style':'cursor: pointer;'});
 					}
 				}
 			}

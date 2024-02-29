@@ -184,7 +184,6 @@
 					OI.ready(function(){
 						// Attach our hexmap to <div id="hexmap1"></div>
 						hex = new OI.hexmap(document.getElementById('hexmap1'),{
-							'labels': { 'show': true },
 							// Define the HexJSON - https://open-innovations.org/projects/hexmaps/hexjson
 							'hexjson':{
 								"layout":"odd-r",
@@ -211,13 +210,13 @@
 					#hexmap2 { height: 500px; width: 100%; animation-duration: 0.3s; }
 					#hexmap2 .hex-cell { stroke: white; stroke-width: 2; transition: fill 0.3s ease-in, stroke 0.3s ease-in, stroke-width 0.3s ease-in; }
 					/* Make the hexagon larger when hovered */
-					#hexmap2 .hex-cell.hover { stroke-width: 4px; transform: scale(1.75); }
+					#hexmap2 .hover path { stroke-width: 4px; transform: scale(1.75); }
 					/* Set the on and off styles for the text labels */
 					#hexmap2 .hex-label tspan.on { display: none; }
 					#hexmap2 .hex-label tspan.off { display: block; }
 					#hexmap2 .hex-label tspan.big { font-weight: bold; font-size: 1.2em; }
-					#hexmap2 .hex-label.hover tspan.on { display: block; }
-					#hexmap2 .hex-label.hover tspan.off { display: none; }
+					#hexmap2 .hover .hex-label tspan.on { display: block; }
+					#hexmap2 .hover .hex-label tspan.off { display: none; }
 					</style>
 					<figure>
 						<div id="hexmap2"></div>
@@ -301,7 +300,7 @@
 					<style>
 					#hexmap3 { height: 800px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
 					#hexmap3 .hex-cell { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
-					#hexmap3 .hex-cell.hover { stroke-width: 4px; }
+					#hexmap3 .hover path { stroke-width: 4px; }
 					@media only screen and (max-width: 700px) {
 						/* Don't bother with labels if it is too small */
 						#hexmap3 .hex-label { display: none; }
@@ -397,6 +396,118 @@
 							bbo = svg.getBoundingClientRect();
 							tip.style.left = Math.round(bb.left + bb.width/2 - bbo.left + svg.scrollLeft)+'px';
 							tip.style.top = Math.round(bb.top + bb.height/2 - bbo.top)+'px';
+						});
+					});
+					</script>
+				</div>
+			</section>
+
+			<section class="example" id="ex4">
+				<h2>London 1895</h2>
+				
+				<div class="example-code">
+					<style>
+					#ex4 figure {
+						font-family: "Times New Roman", serif;
+						background-color: #fdf4d6;
+						padding: 2rem;
+						position: relative;
+						color: #656058;
+					}
+					#ex4 figcaption {
+						margin-top: 2em;
+						text-align: center;
+					}
+					#hexmap4 {
+						aspect-ratio: 1 / 1;
+						position: relative;
+						margin: auto;
+					}
+					#hexmap4 tspan.name {
+						font-family: "Arial Black","Copperplate Gothic Bold","Times New Roman", serif;
+					}
+					#hexmap4 .hex-cell {
+						fill: #fdf4d6;
+						stroke: #656058;
+						stroke-width: 3px;
+						color: inherit;
+					}
+					#hexmap4 .hex-label .id, #hexmap4 .hex-label .name {
+						font-weight: 700;
+						fill: #656058;
+						text-shadow: 3px 3px 2px #fdf4d6, -3px 3px 1px #fdf4d6, -3px -3px 1px #fdf4d6, 3px -3px 2px #fdf4d6;
+					}
+					#hexmap4 .hex.big .hex-label { transform: scale(1.8); }
+					#hexmap4 .hex-label .id {
+						font-size: 250%;
+						font-family: "Times New Roman", serif;
+					}
+					#hexmap4 .hex-label .name {
+						font-size: 1.3em;
+						text-transform: uppercase;
+					}
+					#hexmap4 .hex.hover path, #hexmap4 .hex.hover .hex-label { transform: scale(1.3); }
+					#hexmap4 .hex.hover.big .hex-label { transform: scale(2.5); }
+					#hexmap4 .hex.hover path { stroke-width: 4px; fill: #656058!important; }
+					#hexmap4 .hover .id, #hexmap4 .hover .name { text-shadow: none; fill: #fdf4d6; }
+					.vertical path { fill: url(#verticalHatch)!important; }
+					.horizontal path { fill: url(#horizontalHatch)!important; }
+					</style>
+					<figure>
+						<div id="hexmap4">
+						</div>
+						<figcaption>London indexed by 2-mile hexagons</figcaption>
+					</figure>
+					<script>
+					OI.ready(function(){
+
+						// Create the hexagon layout
+						hex = new OI.hexmap(document.getElementById('hexmap4'),{
+							// The HexJSON layout
+							'hexjson': {
+								"layout":"odd-q",
+								"hexes": {
+									"A":{"n":"1a","q":0,"r":3,"label":"Horn<br>sey","class":"horizontal"},
+									"B":{"n":"2a","q":1,"r":2,"label":"Hack<br>ney","class":"horizontal"},
+									"C":{"n":"3a","q":2,"r":2,"label":"Old<br>Ford","class":"horizontal"},
+									"D":{"n":"4a","q":2,"r":1,"label":"Poplar","class":"horizontal"},
+									"E":{"n":"5a","q":2,"r":0,"label":"Dept<br>ford","class":"horizontal"},
+									"F":{"n":"6a","q":1,"r":-1,"label":"Peck<br>ham","class":"horizontal"},
+									"G":{"n":"7a","q":0,"r":-1,"label":"Brix<br>ton","class":"horizontal"},
+									"H":{"n":"8a","q":-1,"r":-1,"label":"Batter<br>sea","class":"horizontal"},
+									"I":{"n":"9a","q":-2,"r":0,"label":"Chel<br>sea","class":"horizontal"},
+									"J":{"n":"10a","q":-2,"r":1,"label":"Mary Le<br>Bone","class":"horizontal"},
+									"K":{"n":"11a","q":-2,"r":2,"label":"S<sup>t</sup> John'<sup>s</sup><br />Wood","class":"horizontal"},
+									"L":{"n":"12a","q":-1,"r":2,"label":"Kentish<br>Town","class":"horizontal"},
+									"M":{"n":"1","q":0,"r":2,"label":"Isling·<br>ton","class":"vertical"},
+									"N":{"n":"2","q":1,"r":1,"label":"Bethnal<br>Green","class":"vertical"},
+									"O":{"n":"3","q":1,"r":0,"label":"South·<br>wark","class":"vertical"},
+									"P":{"n":"4","q":0,"r":0,"label":"Kenning·<br>ton","class":"vertical"},
+									"Q":{"n":"5","q":-1,"r":0,"label":"Westmin·<br>ster","class":"vertical"},
+									"R":{"n":"6","q":-1,"r":1,"label":"St Pan·<br>cras","class":"vertical"},
+									"S":{"n":"","q":0,"r":1,"label":"The<br><tspan class='big'>City</tspan>","class":"big"}
+								}
+							},
+							'patterns': [
+								'<pattern id="verticalHatch" patternUnits="userSpaceOnUse" width="8" height="8"><path d="M0,0 l0,8 M0,4 l0,8" style="stroke:#656058;stroke-width:8;opacity:0.3;" /></pattern>',
+								'<pattern id="horizontalHatch" patternUnits="userSpaceOnUse" width="8" height="8"><path d="M0,0 l8,0 M4,0 l8,0" style="stroke:#656058;stroke-width:8;opacity:0.3;" /></pattern>'
+							],
+							'label': {
+								'show': true,
+								'format': function(txt,attr){
+									var tspans = '';
+									lines = (txt) ? [txt] : [];
+									lines = lines.concat(attr.hex.label.split(/<br ?\/?>/));
+									lineheight = attr['font-size']*1.5;
+									for(var i = 0; i < lines.length; i++){
+										tspans += '<tspan class="'+(txt && i==0 ? 'id':'name')+'" y="'+(attr.y + (i-lines.length/2+0.5)*lineheight).toFixed(3)+'" x="'+attr.x.toFixed(3)+'">'+lines[i].replace(/<sup>/g,'<tspan dy="-4" font-size="60%">').replace(/<\/sup>/g,'</tspan><tspan dy="4"> </tspan>')+'</tspan>';
+									}
+									return tspans;
+								}
+							},
+							// Once we've loaded the map the ready function is called
+							'ready':function(){
+							}
 						});
 					});
 					</script>
