@@ -402,6 +402,99 @@
 				</div>
 			</section>
 
+			<section class="example" id="ex3b">
+				<h2>Using external data, adding tooltips, styling boundaries</h2>
+				<p>This example loads in an external HexJSON file, loads in some data, and then colours the hexes depending on the data. To work out the colours we'll make a little helper function <code>ColourScale</code>.</p>
+				<p>This example also styles the <code>lines</code> defined in the HexJSON by calling <code>this.updateBoundaries(fn)</code> with a function, <code>fn</code>, that has the line ID and line properties as input parameters. This allows us some flexibility in how different lines are styled.</p>
+				<div class="example-code">
+					<style>
+					#hexmap3b { height: 800px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
+					#hexmap3b .hex-cell { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
+					#hexmap3b .hover path { stroke-width: 4px; }
+					@media only screen and (max-width: 700px) {
+						/* Don't bother with labels if it is too small */
+						#hexmap3b .hex-label { display: none; }
+					}
+					#hexmap3b .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.25em 0.5em; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
+					#hexmap3b .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
+					</style>
+					<figure>
+						<div id="hexmap3b"></div>
+						<figcaption>Cartogram showing UK constituencies coloured by the number of signatures they received on House of Commons petitions during 2017-2019. Data from The House of Commons Library. Layout by Open Innovations and contributors.</figcaption>
+					</figure>
+					<script>
+					OI.ready(function(){
+						// Define a colour scale helper function
+						function ColourScale(c){
+							var s,n;
+							s = c;
+							n = s.length;
+							// Get a colour given a value, and the range minimum/maximum
+							this.getValue = function(v,min,max){
+								var c,a,b;
+								v = (v-min)/(max-min);
+								if(v<0) return 'rgb('+s[0].rgb.join(',')+')';
+								if(v>=1) return 'rgb('+s[n-1].rgb.join(',')+')';
+								for(c = 0; c < n-1; c++){
+									a = s[c];
+									b = s[c+1];
+									if(v >= a.v && v < b.v){
+										pc = Math.min(1,(v - a.v)/(b.v-a.v));
+										rgb = [Math.round(a.rgb[0] + (b.rgb[0]-a.rgb[0])*pc),Math.round(a.rgb[1] + (b.rgb[1]-a.rgb[1])*pc),Math.round(a.rgb[2] + (b.rgb[2]-a.rgb[2])*pc)];
+										return 'rgb('+rgb.join(',')+')';
+									}
+								}
+							};
+							return this;
+						}
+
+						// Define the Viridis colour scale
+						viridis = new ColourScale([{'rgb':[68,1,84],v:0},{'rgb':[72,35,116],'v':0.1},{'rgb':[64,67,135],'v':0.2},{'rgb':[52,94,141],'v':0.3},{'rgb':[41,120,142],'v':0.4},{'rgb':[32,143,140],'v':0.5},{'rgb':[34,167,132],'v':0.6},{'rgb':[66,190,113],'v':0.7},{'rgb':[121,209,81],'v':0.8},{'rgb':[186,222,39],'v':0.9},{'rgb':[253,231,36],'v':1}]);
+
+						// Create the hexagon layout
+						hex = new OI.hexmap(document.getElementById('hexmap3b'),{
+							// The HexJSON layout
+							'hexjson':'resources/uk-constituencies-2023.hexjson',
+							// Once we've loaded the map the ready function is called
+							'ready':function(){
+								this.updateColours(function(r){
+									return this.areas[r].data.colour;
+								})
+								console.log(this);
+								// Update the line styles
+								this.updateBoundaries(function(n,props){
+									if(props.type=="country") return {'stroke':'white','stroke-width':3,'stroke-dasharray':'4 4','stroke-linecap':'round','opacity':0.9};
+									if(props.type=="region") return {'stroke':'white','stroke-width':2,'stroke-dasharray':'4 4','stroke-linecap':'round','opacity':0.6};
+								});
+							}
+						});
+
+						// Make a tooltip
+						hex.on('mouseover',function(e){
+							var svg,tip,bb,bbo,hex;
+							svg = e.data.hexmap.el;
+							hex = e.target;
+							// Get any existing tooltip for this hexmap
+							tip = svg.querySelector('.tooltip');
+							if(!tip){
+								// Add a new tooltip
+								tip = document.createElement('div');
+								tip.classList.add('tooltip');
+								svg.appendChild(tip);
+							}
+							// Update contents of tooltip
+							tip.innerHTML = e.data.data.n+'<br />q,r: '+e.data.data.q+','+e.data.data.r+'<br />Region: '+e.data.data.region;
+							// Update position of tooltip
+							bb = hex.getBoundingClientRect();
+							bbo = svg.getBoundingClientRect();
+							tip.style.left = Math.round(bb.left + bb.width/2 - bbo.left + svg.scrollLeft)+'px';
+							tip.style.top = Math.round(bb.top + bb.height/2 - bbo.top)+'px';
+						});
+					});
+					</script>
+				</div>
+			</section>
+
 			<section class="example" id="ex4">
 				<h2>London 1895</h2>
 				
@@ -460,8 +553,6 @@
 					</figure>
 					<script>
 					OI.ready(function(){
-
-						// Create the hexagon layout
 						hex = new OI.hexmap(document.getElementById('hexmap4'),{
 							// The HexJSON layout
 							'hexjson': {
