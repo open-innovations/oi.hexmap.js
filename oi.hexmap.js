@@ -427,7 +427,7 @@
 		};
 
 		this.estimateSize = function(){
-			var s,nx,ny;
+			var s, nx, ny, dx, dy;
 			if(this.properties.orientation=="r"){
 				if(range.r.d == 0){
 					nx = range.q.d + 1;
