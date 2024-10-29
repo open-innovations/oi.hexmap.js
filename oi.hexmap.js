@@ -645,7 +645,14 @@
 							y = roundTo(h.y,3);
 							g = svgEl('g');
 							g.classList.add('hex');
-							if(this.mapping.hexes[r].class) g.classList.add(this.mapping.hexes[r].class);
+							if (this.mapping.hexes[r].class) {
+								this.mapping.hexes[r].class
+									.split(' ')
+									.map((className) => {
+											g.classList.add(className);
+										}
+									);
+							}
 							setAttr(g,{'data-id':r,'role':'listitem'});
 							hexes.appendChild(g);
 							path = svgEl('path');
