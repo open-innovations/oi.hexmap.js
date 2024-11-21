@@ -655,11 +655,7 @@
 
 			<section class="example" id="ex5">
 				<h2>Add an image to a hex</h2>
-				<p>These hex maps are built from SVG and adding bitmapped images is not recommended. However, there are a couple of things you could do:</p>
-				<ol>
-					<li>You can apply <code>background-image</code> to the container with CSS.</li>
-					<li>You could try applying a <code>&lt;pattern&gt;</code> with a class to a particular hexagon.</li>
-				</ol>
+				<p>The hex maps are built from SVG. This library doesn't really support adding images to hexes. However, you can apply background images to the container with CSS (<code>background-image</code>) or you can apply a <code>&lt;pattern&gt;</code> to a particular hexagon.</p>
 				<div class="example-code">
 					<style>
 					/* Apply a background image to the container */
@@ -716,9 +712,6 @@
 								'format': function(txt,attr){
 									return '<tspan>'+attr.hex.label+'</tspan>';
 								}
-							},
-							// Once we've loaded the map the ready function is called
-							'ready':function(){
 							}
 						});
 					});
