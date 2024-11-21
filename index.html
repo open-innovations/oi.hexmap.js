@@ -173,7 +173,7 @@
 			<section class="example" id="ex1">
 				<h2>A basic hexmap</h2>
 				<p>Let's create a very basic hex map using a HexJSON layout. Everything happens in <code>OI.hexmap(el,attributes)</code> where <code>el</code> is the DOM element we are attaching the hex map to and <code>attributes</code> defines properties of the hex map. At a minimum, <code>attributes</code> should include <code>hexjson</code> which can either be inline HexJSON or a path to an external HexJSON file. In this example we will add the HexJSON inline.</p>
-				<p>By default, the <code>title</code> of each hex (try hovering over them) uses the <code>n</code> or <code>name</code> property of the hex in the HexJSON.</p>
+				<p>By default, the <code>&lt;title&gt;</code> of each hex (try hovering over them) uses the <code>n</code> or <code>name</code> property of the hex in the HexJSON.</p>
 				<div class="example-code">
 					<style>
 					/* Define the size of the hexmap area */
@@ -204,13 +204,14 @@
 
 			<section class="example" id="ex2">
 				<h2>Styling hexes and labels</h2>
-				<p>We will use the same hexmap but this time we add some extra properties to each item in the HexJSON. The <code>colour</code> property is used to colour each hex. We also turn on labels, make sure they are clipped to the hexagon, and customise the text of the label. The default label text is the value of <code>n</code> but we can provide a <code>format</code> function to customise the content. Here we split the string into separate <code>tspan</code> elements and add the population value. We make use of CSS classes so that we can make some parts of the label only visible on hover and even scale the size of the hexagon on hover (the code adds the style <code>.hover</code> to the hexagon and label).</p>
+				<p>We will use the same hexmap but this time we add some extra properties to each item in the HexJSON. The <code>colour</code> property is used to colour each hex. We also turn on labels, make sure they are clipped to the hexagon, and customise the text of the label. The default label text is the value of <code>n</code> or <code>name</code> truncated to three characters but we can provide a <code>format</code> function to customise the content. In this example we build a more complex label using multiple <code>tspan</code> elements. We make use of CSS classes so that we can make some parts of the label only visible on hover. We can also scale the size of the hexagon on hover (the code adds the style <code>.hover</code> to the hexagon and label).</p>
 				<div class="example-code">
 					<style>
 					#hexmap2 { height: 500px; width: 100%; animation-duration: 0.3s; }
-					#hexmap2 .hex-cell { stroke: white; stroke-width: 2; transition: fill 0.3s ease-in, stroke 0.3s ease-in, stroke-width 0.3s ease-in; }
+					#hexmap2 .hex path { stroke: white; stroke-width: 2; transition: fill 0.3s ease-in, stroke 0.3s ease-in, stroke-width 0.3s ease-in; }
 					/* Make the hexagon larger when hovered */
-					#hexmap2 .hover path { stroke-width: 4px; transform: scale(1.75); }
+					#hexmap2 .hover path { stroke-width: 4px; transform: scale(1.75); stroke: black; }
+					#hexmap2 .hex-label { font-size: 1rem; line-height:1.1em;}
 					/* Set the on and off styles for the text labels */
 					#hexmap2 .hex-label tspan.on { display: none; }
 					#hexmap2 .hex-label tspan.off { display: block; }
@@ -220,11 +221,12 @@
 					</style>
 					<figure>
 						<div id="hexmap2"></div>
-						<figcaption>Cartogram showing Leeds wards with coloured assigned manually.</figcaption>
+						<figcaption>Cartogram showing Leeds wards with colours assigned manually.</figcaption>
 					</figure>
 					<script>
 					OI.ready(function(){
 						hex = new OI.hexmap(document.getElementById('hexmap2'),{
+							'grid': {'show':true},
 							'label':{
 								'show': true,	// Show a label
 								'clip': true,	// Make sure the label is clipped to the hexagon
@@ -241,8 +243,9 @@
 									tspans = '<tspan class="off">'+txt.substr(0,3)+'</tspan>';
 									lines = txt.split(/ /);
 									lines.push(attr.hex.pop.toLocaleString());
+									var lineheight = attr['line-height']||(attr['font-size']*1.5);
 									for(var i = 0; i < lines.length; i++){
-										tspans += '<tspan class="on'+(i==lines.length-1 ? ' big':'')+'" y="'+(attr.y + (i-lines.length/2+0.5)*attr['font-size']).toFixed(3)+'" x="'+attr.x.toFixed(3)+'">'+lines[i]+'</tspan>';
+										tspans += '<tspan class="on'+(i==lines.length-1 ? ' big':'')+'" y="'+((i-lines.length/2+0.5)*lineheight).toFixed(3)+'" x="0">'+lines[i]+'</tspan>';
 									}
 									return tspans;
 								}
@@ -292,20 +295,85 @@
 				</div>
 			</section>
 
+			<section class="example" id="ex3b">
+				<h2>Using external HexJSON, adding tooltips, styling boundaries</h2>
+				<p>This example loads in an external HexJSON file, and then colours the hexes depending on the data. To work out the colours we'll make a little helper function <code>ColourScale</code>.</p>
+				<p>This example also styles the <code>boundaries</code> defined in the HexJSON by calling <code>this.updateBoundaries(fn)</code> with a function, <code>fn</code>, that has the line ID and line properties as input parameters. This allows us some flexibility in how different lines are styled.</p>
+				<div class="example-code">
+					<style>
+					#hexmap3b { height: 800px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
+					#hexmap3b .hex path { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
+					#hexmap3b .hover path { stroke-width: 4px; }
+					@media only screen and (max-width: 700px) {
+						/* Don't bother with labels if it is too small */
+						#hexmap3b .hex text { display: none; }
+					}
+					#hexmap3b .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.5rem; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
+					#hexmap3b .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
+					</style>
+					<figure>
+						<div id="hexmap3b"></div>
+						<figcaption>Cartogram showing UK constituencies coloured by the number of signatures they received on House of Commons petitions during 2017-2019. Data from The House of Commons Library. Layout by Open Innovations and contributors.</figcaption>
+					</figure>
+					<script>
+					OI.ready(function(){
+						// Create the hexagon layout
+						hex = new OI.hexmap(document.getElementById('hexmap3b'),{
+							// The HexJSON layout
+							'hexjson':'resources/uk-constituencies-2023.hexjson',
+							// Once we've loaded the map the ready function is called
+							'ready':function(){
+								this.updateColours(function(r){
+									return this.areas[r].data.colour;
+								})
+								// Update the line styles
+								this.updateBoundaries(function(n,props){
+									if(props.type=="country") return {'stroke':'white','stroke-width':3,'stroke-dasharray':'4 4','stroke-linecap':'round','opacity':0.9};
+									if(props.type=="region") return {'stroke':'white','stroke-width':2,'stroke-dasharray':'4 4','stroke-linecap':'round','opacity':0.6};
+								});
+							}
+						});
+
+						// Make a tooltip
+						hex.on('mouseover',function(e){
+							var svg,tip,bb,bbo,hex;
+							svg = e.data.hexmap.el;
+							hex = e.target;
+							// Get any existing tooltip for this hexmap
+							tip = svg.querySelector('.tooltip');
+							if(!tip){
+								// Add a new tooltip
+								tip = document.createElement('div');
+								tip.classList.add('tooltip');
+								svg.appendChild(tip);
+							}
+							// Update contents of tooltip
+							tip.innerHTML = e.data.data.n+'<br />q,r: '+e.data.data.q+','+e.data.data.r+'<br />Region: '+e.data.data.region;
+							// Update position of tooltip
+							bb = hex.getBoundingClientRect();
+							bbo = svg.getBoundingClientRect();
+							tip.style.left = Math.round(bb.left + bb.width/2 - bbo.left + svg.scrollLeft)+'px';
+							tip.style.top = Math.round(bb.top + bb.height/2 - bbo.top)+'px';
+						});
+					});
+					</script>
+				</div>
+			</section>
+
 			<section class="example" id="ex3">
 				<h2>Using external data, adding tooltips, styling boundaries</h2>
-				<p>This example loads in an external HexJSON file, loads in some data, and then colours the hexes depending on the data. To work out the colours we'll make a little helper function <code>ColourScale</code>.</p>
-				<p>This example also styles the <code>lines</code> defined in the HexJSON by calling <code>this.updateBoundaries(fn)</code> with a function, <code>fn</code>, that has the line ID and line properties as input parameters. This allows us some flexibility in how different lines are styled.</p>
+				<p>This example loads in an external HexJSON file, loads in some external JSON data, and then colours the hexes depending on the data. To work out the colours we'll make a little helper function <code>ColourScale</code>.</p>
+				<p>This example also styles the <code>boundaries</code> defined in the HexJSON by calling <code>this.updateBoundaries(fn)</code> with a function, <code>fn</code>, that has the line ID and line properties as input parameters. This allows us some flexibility in how different lines are styled.</p>
 				<div class="example-code">
 					<style>
 					#hexmap3 { height: 800px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
-					#hexmap3 .hex-cell { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
+					#hexmap3 .hex path { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
 					#hexmap3 .hover path { stroke-width: 4px; }
 					@media only screen and (max-width: 700px) {
 						/* Don't bother with labels if it is too small */
 						#hexmap3 .hex-label { display: none; }
 					}
-					#hexmap3 .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.25em 0.5em; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
+					#hexmap3 .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.5rem; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
 					#hexmap3 .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
 					</style>
 					<figure>
@@ -343,35 +411,36 @@
 
 						// Create the hexagon layout
 						hex = new OI.hexmap(document.getElementById('hexmap3'),{
+							'grid': {'show':true},
 							// The HexJSON layout
 							'hexjson':'resources/constituencies.hexjson',
 							// Once we've loaded the map the ready function is called
 							'ready':function(){
+								var url = 'resources/2017-9.json';
 								// Load the data
-								OI.ajax('resources/2017-9.json',{
-									'this': this, // Set the context to the hexmap
-									'dataType':'json',
-									'success':function(data){
-										
-										// Process the data file to find the minimum and maximum
-										var min = 1e100;
-										var max = -1e100;
-										for(var r in data){
-											min = Math.min(data[r],min);
-											max = Math.max(data[r],max);
-										}
-										this.data = data;
-										
-										// Update the hex colours
-										this.updateColours(function(r){ return viridis.getValue(data[r],min,max); });
-										
-										// Update the line styles
-										this.updateBoundaries(function(n,props){
-											if(props.type=="country") return {'stroke':'white','stroke-width':3,'stroke-dasharray':'4 4','stroke-linecap':'round','opacity':0.9};
-											if(props.type=="region") return {'stroke':'white','stroke-width':3,'stroke-dasharray':'4 4','stroke-linecap':'round','opacity':0.4};
-										});
-									},
-									'error':function(e,attr){ this.log('ERROR','Unable to load ',attr.url,attr); }
+								fetch(url)
+								.then(function(response){ return response.json(); })
+								.then(function(data){
+									// Process the data file to find the minimum and maximum
+									var min = 1e100;
+									var max = -1e100;
+									for(var r in data){
+										min = Math.min(data[r],min);
+										max = Math.max(data[r],max);
+									}
+									this.data = data;
+									
+									// Update the hex colours
+									this.updateColours(function(r){ return viridis.getValue(data[r],min,max); });
+									
+									// Update the line styles
+									this.updateBoundaries(function(n,props){
+										if(props.type=="country") return {'stroke':'white','stroke-width':3,'stroke-linecap':'round','opacity':0.9};
+										if(props.type=="region") return {'stroke':'white','stroke-width':3,'stroke-linecap':'round','opacity':0.4};
+									});
+								}.bind(this)).catch(function(error){
+									console.log(this,error);
+									this.log('ERROR','Unable to load '+url);
 								});
 							}
 						});
@@ -402,25 +471,26 @@
 				</div>
 			</section>
 
-			<section class="example" id="ex3b">
-				<h2>Using external data, adding tooltips, styling boundaries</h2>
-				<p>This example loads in an external HexJSON file, loads in some data, and then colours the hexes depending on the data. To work out the colours we'll make a little helper function <code>ColourScale</code>.</p>
-				<p>This example also styles the <code>lines</code> defined in the HexJSON by calling <code>this.updateBoundaries(fn)</code> with a function, <code>fn</code>, that has the line ID and line properties as input parameters. This allows us some flexibility in how different lines are styled.</p>
+
+			<section class="example" id="ex3c">
+				
+				<h2>Style boundaries</h2>
+				<p>In this example we load in an external HexJSON, set the colours based on the <code>q</code> value, and add a tooltip.</p>
 				<div class="example-code">
 					<style>
-					#hexmap3b { height: 800px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
-					#hexmap3b .hex-cell { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
-					#hexmap3b .hover path { stroke-width: 4px; }
+					#hexmap3c { height: 800px; width: 100%; margin-top: 1em; position: relative; animation-duration: 0.3s; }
+					#hexmap3c .hex path { stroke: black; stroke-width: 0; transition: fill 0.2s ease-in, stroke 0.2s ease-in, stroke-width 0.2s ease-in; }
+					#hexmap3c .hover path { stroke-width: 4px; }
 					@media only screen and (max-width: 700px) {
 						/* Don't bother with labels if it is too small */
-						#hexmap3b .hex-label { display: none; }
+						#hexmap3c .hex .hex-label { display: none; }
 					}
-					#hexmap3b .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.25em 0.5em; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
-					#hexmap3b .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
+					#hexmap3c .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.5rem; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
+					#hexmap3c .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
 					</style>
 					<figure>
-						<div id="hexmap3b"></div>
-						<figcaption>Cartogram showing UK constituencies coloured by the number of signatures they received on House of Commons petitions during 2017-2019. Data from The House of Commons Library. Layout by Open Innovations and contributors.</figcaption>
+						<div id="hexmap3c"></div>
+						<figcaption>Cartogram showing UK local authorities coloured by the number of signatures they received on House of Commons petitions during 2017-2019. Data from The House of Commons Library. Layout by Open Innovations and contributors.</figcaption>
 					</figure>
 					<script>
 					OI.ready(function(){
@@ -452,19 +522,24 @@
 						viridis = new ColourScale([{'rgb':[68,1,84],v:0},{'rgb':[72,35,116],'v':0.1},{'rgb':[64,67,135],'v':0.2},{'rgb':[52,94,141],'v':0.3},{'rgb':[41,120,142],'v':0.4},{'rgb':[32,143,140],'v':0.5},{'rgb':[34,167,132],'v':0.6},{'rgb':[66,190,113],'v':0.7},{'rgb':[121,209,81],'v':0.8},{'rgb':[186,222,39],'v':0.9},{'rgb':[253,231,36],'v':1}]);
 
 						// Create the hexagon layout
-						hex = new OI.hexmap(document.getElementById('hexmap3b'),{
+						hex = new OI.hexmap(document.getElementById('hexmap3c'),{
 							// The HexJSON layout
-							'hexjson':'resources/uk-constituencies-2023.hexjson',
+							'hexjson':'resources/uk-local-authority-districts-2023.hexjson',
 							// Once we've loaded the map the ready function is called
-							'ready':function(){
+							'ready':function(d){
+								// Process the data to find the minimum and maximum
+								var q,r,min = Infinity, max = -Infinity;
+								for(r in this.areas){
+									q = this.areas[r].data.q;
+									min = Math.min(q,min);
+									max = Math.max(q,max);
+								}
 								this.updateColours(function(r){
-									return this.areas[r].data.colour;
+									return viridis.getValue(this.areas[r].data.q,min,max);
 								})
-								console.log(this);
 								// Update the line styles
 								this.updateBoundaries(function(n,props){
-									if(props.type=="country") return {'stroke':'white','stroke-width':3,'stroke-dasharray':'4 4','stroke-linecap':'round','opacity':0.9};
-									if(props.type=="region") return {'stroke':'white','stroke-width':2,'stroke-dasharray':'4 4','stroke-linecap':'round','opacity':0.6};
+									if(props.type=="country") return {'stroke':'black','stroke-width':3,'stroke-linecap':'round','opacity':0.9};
 								});
 							}
 						});
@@ -497,54 +572,27 @@
 
 			<section class="example" id="ex4">
 				<h2>London 1895</h2>
-				
+				<p>Inspired by a <a href="https://open-innovations.org/blog/images/small/hexmap-inspiration.webp">hexagon map of London from 1895</a> released by the British Library.</p>
 				<div class="example-code">
 					<style>
-					#ex4 figure {
-						font-family: "Times New Roman", serif;
-						background-color: #fdf4d6;
-						padding: 2rem;
-						position: relative;
-						color: #656058;
-					}
-					#ex4 figcaption {
-						margin-top: 2em;
-						text-align: center;
-					}
-					#hexmap4 {
-						aspect-ratio: 1 / 1;
-						position: relative;
-						margin: auto;
-					}
-					#hexmap4 tspan.name {
-						font-family: "Arial Black","Copperplate Gothic Bold","Times New Roman", serif;
-					}
-					#hexmap4 .hex-cell {
-						fill: #fdf4d6;
-						stroke: #656058;
-						stroke-width: 3px;
-						color: inherit;
-					}
-					#hexmap4 .hex-label .id, #hexmap4 .hex-label .name {
-						font-weight: 700;
-						fill: #656058;
-						text-shadow: 3px 3px 2px #fdf4d6, -3px 3px 1px #fdf4d6, -3px -3px 1px #fdf4d6, 3px -3px 2px #fdf4d6;
-					}
-					#hexmap4 .hex.big .hex-label { transform: scale(1.8); }
-					#hexmap4 .hex-label .id {
-						font-size: 250%;
-						font-family: "Times New Roman", serif;
-					}
-					#hexmap4 .hex-label .name {
-						font-size: 1.3em;
-						text-transform: uppercase;
-					}
-					#hexmap4 .hex.hover path, #hexmap4 .hex.hover .hex-label { transform: scale(1.3); }
-					#hexmap4 .hex.hover.big .hex-label { transform: scale(2.5); }
-					#hexmap4 .hex.hover path { stroke-width: 4px; fill: #656058!important; }
-					#hexmap4 .hover .id, #hexmap4 .hover .name { text-shadow: none; fill: #fdf4d6; }
-					.vertical path { fill: url(#verticalHatch)!important; }
-					.horizontal path { fill: url(#horizontalHatch)!important; }
+					#ex4 figure { font-family: "Times New Roman", serif; background-color: #fdf4d6; padding: 2rem; position: relative; color: #656058; }
+					#ex4 figcaption { margin-top: 2em; text-align: center; }
+					#hexmap4 { border-radius: 100%; border: 4px solid #656058; padding:2em;aspect-ratio: 1 / 1; position: relative; margin: auto; }
+					#hexmap4 tspan.name { font-family: "Arial Black","Copperplate Gothic Bold","Times New Roman", serif; }
+					#hexmap4 .hex path { stroke: #656058; stroke-width: 3px; color: inherit; }
+					#hexmap4 .hex-label .id, #hexmap4 .hex-label .name { font-weight: 700; fill: #656058; text-shadow: 3px 3px 2px #fdf4d6, -3px 3px 1px #fdf4d6, -3px -3px 1px #fdf4d6, 3px -3px 2px #fdf4d6; }
+					#hexmap4 .hex .hex-label { stroke-width: 0; transform: scale(0.3); }
+					#hexmap4 .hex.big .hex-label { transform: scale(0.6); }
+					#hexmap4 .hex.hover .hex-label { transform: scale(0.4); }
+					#hexmap4 .hex.big.hover .hex-label { transform: scale(0.9); }
+					#hexmap4 .hex-label .id { font-size: 250%; font-family: "Times New Roman", serif; }
+					#hexmap4 .hex-label .name { font-size: 1.3em; text-transform: uppercase; }
+					#hexmap4 .hex.hover path { transform: scale(1.2); stroke-width: 4px; stroke: black; }
+					#hexmap4 .hex.hover .id, #hexmap4 .hex.hover .name { text-shadow: none; fill: #fdf4d6; }
+					#hexmap4 .data-layer .hex path { fill: #fdf4d6!important; }
+					#hexmap4 .data-layer .hex.hover path { fill: #656058!important; }
+					#hexmap4 .data-layer .vertical path { fill: url(#verticalHatch)!important; }
+					#hexmap4 .data-layer .horizontal path { fill: url(#horizontalHatch)!important; }
 					</style>
 					<figure>
 						<div id="hexmap4">
@@ -576,7 +624,7 @@
 									"P":{"n":"4","q":0,"r":0,"label":"Kenning·<br>ton","class":"vertical"},
 									"Q":{"n":"5","q":-1,"r":0,"label":"Westmin·<br>ster","class":"vertical"},
 									"R":{"n":"6","q":-1,"r":1,"label":"St Pan·<br>cras","class":"vertical"},
-									"S":{"n":"","q":0,"r":1,"label":"The<br><tspan class='big'>City</tspan>","class":"big"}
+									"S":{"n":"","q":0,"r":1,"label":"The<br><tspan class='capital'>City</tspan>","class":"big"}
 								}
 							},
 							'patterns': [
@@ -589,9 +637,8 @@
 									var tspans = '';
 									lines = (txt) ? [txt] : [];
 									lines = lines.concat(attr.hex.label.split(/<br ?\/?>/));
-									lineheight = attr['font-size']*1.5;
 									for(var i = 0; i < lines.length; i++){
-										tspans += '<tspan class="'+(txt && i==0 ? 'id':'name')+'" y="'+(attr.y + (i-lines.length/2+0.5)*lineheight).toFixed(3)+'" x="'+attr.x.toFixed(3)+'">'+lines[i].replace(/<sup>/g,'<tspan dy="-4" font-size="60%">').replace(/<\/sup>/g,'</tspan><tspan dy="4"> </tspan>')+'</tspan>';
+										tspans += '<tspan class="'+(txt && i==0 ? 'id':'name')+'" y="'+((i-lines.length/2+0.5)*(attr['font-size']*1.5)).toFixed(3)+'" x="0">'+lines[i].replace(/<sup>/g,'<tspan dy="-4" font-size="60%">').replace(/<\/sup>/g,'</tspan><tspan dy="4"> </tspan>')+'</tspan>';
 									}
 									return tspans;
 								}

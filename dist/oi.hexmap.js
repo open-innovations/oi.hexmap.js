@@ -1,20 +1,5 @@
 /**
-	OI hex map in SVG
-	0.7.0:
-	    - Draw boundary lines
-		- Add patterns
-	0.6.4:
-		- Remove browser tooltip
-	0.6.3:
-		- fitToRange()
-	0.6.2:
-		- allow multiple callbacks to be added with .on()
-	0.6.1:
-		- bug fixes
-	0.6.0:
-		- change namespace
-		- set padding
-		- can provide function to updateColours()
+	Open Innovations hex map in SVG v0.8.3
  */
 (function(root){
 
@@ -26,51 +11,21 @@
 			else document.addEventListener('DOMContentLoaded', fn);
 		};
 	}
-	function AJAX(url,opt){
-		// Version 1.1
-		if(!opt) opt = {};
-		var req = new XMLHttpRequest();
-		var responseTypeAware = 'responseType' in req;
-		if(responseTypeAware && opt.dataType) req.responseType = opt.dataType;
-		req.open((opt.method||'GET'),url+(opt.cache ? '?'+Math.random() : ''),true);
-		req.onload = function(e){
-			if(this.status >= 200 && this.status < 400) {
-				// Success!
-				var resp = this.response;
-				if(typeof opt.success==="function") opt.success.call((opt['this']||this),resp,{'url':url,'data':opt,'originalEvent':e});
-			}else{
-				// We reached our target server, but it returned an error
-				if(typeof opt.error==="function") opt.error.call((opt['this']||this),e,{'url':url,'data':opt});
-			}
-		};
-		if(typeof opt.error==="function"){
-			// There was a connection error of some sort
-			req.onerror = function(err){ opt.error.call((opt['this']||this),err,{'url':url,'data':opt}); };
-		}
-		req.send();
-		return this;
-	}
-	if(!OI.ajax) OI.ajax = AJAX;
-	
-	function roundTo(v,prec){
-		if(typeof v==="number") v = v.toFixed(prec);
-		return v.replace(/\.([0-9]+)0+$/,function(m,p1){ return "."+p1; }).replace(/\.0+$/,"");
-	}
 
 	// Input structure:
-	//    el: the element to attach to
-	//    attr: an object defining various parameters:
-	//      width: the width of the SVG element created
-	//      height: the height of the SVG element created
-	//      padding: an integer number of hexes to leave as padding around the displayed map
-	//      grid: do we show the background grid?
-	//      clip: do we clip the text to the hex?
-	//      formatLabel: a function to format the hex label
-	//      size: the size of a hexagon in pixels
+	//		el: the element to attach to
+	//		attr: an object defining various parameters:
+	//			width: the width of the SVG element created
+	//			height: the height of the SVG element created
+	//			padding: an integer number of hexes to leave as padding around the displayed map
+	//			grid: do we show the background grid?
+	//			clip: do we clip the text to the hex?
+	//			formatLabel: a function to format the hex label
+	//			size: the size of a hexagon in pixels
 	function HexMap(el,attr){
 
-		this.version = "0.7.0";
-		if(!attr) attr  = {};
+		this.version = "0.8.3";
+		if(!attr) attr	= {};
 		this._attr = attr;
 		this.title = "OI HexMap";
 		this.logging = (location.search.indexOf('debug=true') >= 0);
@@ -83,6 +38,7 @@
 		}
 
 		if(!attr.label) attr.label = {};
+		if(!attr.tooltip) attr.tooltip = {};
 		if(!attr.grid) attr.grid = {};
 		if(typeof attr.label.show!=="boolean") attr.label.show = false;
 		if(typeof attr.label.clip!=="boolean") attr.label.clip = false;
@@ -94,21 +50,36 @@
 		this.maxh = tall;
 		var aspectratio = wide/tall;
 		var constructed = false;
-		var svg,hexes,lines,overlay;
+		var svg,hexes,lines,overlay,datalayer,grid;
 		var range = {};
 		var fs = parseFloat(getComputedStyle(el)['font-size'])||16;
+		var hovered = null;
 		this.areas = {};
 		this.padding = (typeof attr.padding==="number" ? attr.padding : 0);
 		this.properties = { 'size': attr.size };
 		this.callback = {};
 		this.mapping = {};
+		var _obj = this;
 
+		el.classList.add('oi-viz','oi-map','oi-map-hex');
 		
 		// Add an inner element
 		if(!el.querySelector('.hexmap-inner')){
+			var otop = document.createElement('div');
+			otop.classList.add('oi-top');
+			otop.innerHTML = '<div class="oi-left"></div><div class="oi-right"></div>';
+			add(otop,el);
+			var holder = document.createElement('div');
+			holder.classList.add('oi-map-holder');
+			add(holder,el);
+			var obot = document.createElement('div');
+			obot.classList.add('oi-bottom');
+			obot.innerHTML = '<div class="oi-left"></div><div class="oi-right"></div>';
+			add(obot,el);
 			this.el = document.createElement('div');
-			this.el.classList.add('hexmap-inner');
-			el.appendChild(this.el);
+			this.el.classList.add('oi-map-inner');
+			this.el.style.position = "relative";
+			add(this.el,holder);
 		}
 
 		this.options = {
@@ -116,6 +87,7 @@
 			'showgrid': attr.grid.show,
 			'showlabel': attr.label.show,
 			'formatLabel': (typeof attr.label.format==="function" ? attr.label.format : function(txt,attr){ return txt.substr(0,3); }),
+			'formatTooltip': (typeof attr.tooltip.format==="function" ? attr.tooltip.format : function(txt,attr){ return txt; }),
 			'minFontSize': (typeof attr.minFontSize==="number" ? attr.minFontSize : 4)
 		};
 
@@ -128,21 +100,16 @@
 		for(var s in attr.style){
 			if(attr.style[s]){
 				if(!this.style[s]) this.style[s] = {};
-				if(attr.style[s].fill) this.style[s].fill = attr.style[s].fill;
-				if(attr.style[s]['fill-opacity']) this.style[s]['fill-opacity'] = attr.style[s]['fill-opacity'];
-				if(attr.style[s]['font-size']) this.style[s]['font-size'] = attr.style[s]['font-size'];
-				if(attr.style[s].stroke) this.style[s].stroke = attr.style[s].stroke;
-				if(attr.style[s]['stroke-width']) this.style[s]['stroke-width'] = attr.style[s]['stroke-width'];
-				if(attr.style[s]['stroke-opacity']) this.style[s]['stroke-opacity'] = attr.style[s]['stroke-opacity'];
+				if(typeof attr.style[s].fill==="string") this.style[s].fill = attr.style[s].fill;
+				if(typeof attr.style[s]['fill-opacity']==="number") this.style[s]['fill-opacity'] = attr.style[s]['fill-opacity'];
+				if(typeof attr.style[s]['font-size']==="string") this.style[s]['font-size'] = attr.style[s]['font-size'];
+				if(typeof attr.style[s].stroke==="string") this.style[s].stroke = attr.style[s].stroke;
+				if(typeof attr.style[s]['stroke-width']==="number") this.style[s]['stroke-width'] = attr.style[s]['stroke-width'];
+				if(typeof attr.style[s]['stroke-opacity']==="number") this.style[s]['stroke-opacity'] = attr.style[s]['stroke-opacity'];
 			}
 		}
-		this.setHexSize = function(s){
-			if(typeof s!=="number") s = 10;
-			s = Math.round(100*s)/100;
-			attr.size = s;
-			this.properties.size = s;
-			return this;
-		};
+		
+		this._origin = new Hexagon(0,0,this.mapping.layout);
 
 		// Can load a file or a hexjson data structure
 		this.load = function(file,prop,fn){
@@ -156,19 +123,32 @@
 				if(typeof fn==="function") fn.call(_obj,{'data':prop});
 			}
 			if(typeof file==="string"){
-				OI.ajax(file,{
-					'this': this,
-					'dataType':'json',
-					'success': function(data){ done(data); },
-					'error': function(e,prop){ this.log('error','Unable to load '+file,prop); }
+				fetch(file)
+				.then(function(response){ return response.json(); })
+				.then(function(data){ done(data); }.bind(this))
+				.catch(function(error){
+					this.log('ERROR','Unable to load '+file);
 				});
-			}else if(typeof file==="object") done(file,true);
+			}else if(typeof file==="object"){
+				// Add a slight delay so that we can return before the ready() function is fired
+				setTimeout(function(){ done(file,true); },100);
+			}
 			return this;
 		};
 
-		var _obj = this;
+		this.addHexes = function(data,prop,fn){
+			if(this.mapping.layout){
+				if(data.layout == this.mapping.layout){
+					// We want to add the hexagons and rebuild the map
+					for(var r in data.hexes) this.mapping.hexes[r] = data.hexes[r];
+					data = this.mapping;
+				}else this.log('warn','Layout has changed so over-writing existing hexes.');
+			}
+			this.load(data,prop,fn);				
+		};
+
 		// We'll need to change the sizes when the window changes size
-		window.addEventListener('resize', function(event){ _obj.size(); });
+		addEvent('resize',window,{},function(event){ _obj.size(); });
 
 		this.setHexStyle = function(r){
 			var h,style,cls,p;
@@ -187,33 +167,18 @@
 			setAttr(h.path,style);
 			return h;
 		};
-		
-		function setClip(h){
-			var sty = getComputedStyle(h.path);
-			var s = {};
-			if(sty.transform) s.transform = sty.transform;
-			if(s.transform=="none") s.transform = "";
-			if(sty['transform-origin']) s['transform-origin'] = sty['transform-origin'];
-			setAttr(h.clip,s);
-		}
-		
-		this.toFront = function(region){
-			// Move all the overlay children to hexes
-			var front = overlay.childNodes;
-			for(var i = 0; i < front.length; i++) add(front[i],hexes);
-	
-			if(this.areas[region]){
-				// Simulate a change of z-index by moving elements to the end of the SVG
-				// Keep selected items on top
-				for(var r in this.areas){
-					if(this.areas[r]){
-						if(this.areas[r].selected) add(this.areas[r].hex,overlay);
-						if(this.options.clip) setClip(this.areas[r]);
-					}
-				}
-				// Simulate a change of z-index by moving this element (hex and label) to the end of the SVG
-				add(this.areas[region].hex,overlay);
-			}
+
+		this.toFront = function(r){
+			var outline = this.areas[r].hex.cloneNode(true);
+			if(this.areas[r] && this.areas[r].hex) add(this.areas[r].hex,hexes);
+			if(outline.querySelector('text')) outline.querySelector('text').remove();
+			if(outline.querySelector('title')) outline.querySelector('title').remove();
+			setAttr(outline.querySelector('path'),{'fill':'none'});
+			setAttr(outline.querySelector('path'),{'vector-effect':'non-scaling-stroke'});
+			outline.removeAttribute('id');
+			outline.classList.add('outline');
+			overlay.innerHTML = "";
+			add(outline,overlay);
 			return this;
 		};
 
@@ -239,14 +204,17 @@
 		};
 
 		this.regionFocus = function(r){
+			if(hovered && hovered!=r) this.regionBlur(hovered);
+			hovered = r;
 			this.areas[r].hover = true;
-			this.el.querySelectorAll('.hover').forEach(function(el){ el.classList.remove('hover'); });
 			this.setHexStyle(r);
 			this.toFront(r);
 			return this;
 		};
 
 		this.regionBlur = function(r){
+			this.areas[r].hex.classList.remove('hover');
+			hovered = null;
 			this.areas[r].hover = false;
 			this.setHexStyle(r);
 			return this;
@@ -307,8 +275,7 @@
 		this.size = function(w,h){
 			this.el.style.height = '';
 			this.el.style.width = '';
-			setAttr(el,{'style':''});
-			if(svg) setAttr(svg,{'width':0,'height':0});
+			el.removeAttribute('style');
 			w = Math.min(this.maxw,el.offsetWidth);
 			this.el.style.height = (w/aspectratio)+'px';
 			this.el.style.width = w+'px';
@@ -317,20 +284,23 @@
 			// Create SVG container
 			if(!svg){
 				svg = svgEl('svg');
-				setAttr(svg,{'class':'hexmap-map','xmlns':ns,'version':'1.1','overflow':'visible','viewBox':(attr.viewBox||'0 0 '+w+' '+h),'style':'max-width:100%;','preserveAspectRatio':'xMinYMin meet','vector-effect':'non-scaling-stroke'});
+				setAttr(svg,{'class':'oi-map-map','xmlns':ns,'version':'1.1','overflow':'visible','viewBox':(attr.viewBox||'0 0 '+w+' '+h),'style':'max-width:100%;','preserveAspectRatio':'xMidYMin meet','vector-effect':'non-scaling-stroke'});
 				add(svg,this.el);
+				// Create data layer
+				datalayer = svgEl('g');
+				datalayer.classList.add('data-layer');
+				datalayer.setAttribute('role','table');
 				// Create group for hexes
 				hexes = svgEl('g');
-				hexes.classList.add('data-layer');
-				hexes.setAttribute('role','list');
-				// Create group for lines
-				lines = svgEl('g');
-				lines.classList.add('lines');
+				hexes.classList.add('series');
+				hexes.setAttribute('role','row');
+				hexes.setAttribute('aria-label','hexagons');
+				hexes.setAttribute('tabindex','0');
 				// Create group for overlay
 				overlay = svgEl('g');
 				overlay.classList.add('overlay');
 			}
-			setAttr(svg,{'width':w,'height':h});
+			setAttr(svg,{'style':'width:'+w+'px;max-width: 100%; max-height: 100%; margin: auto; background: none;'});
 			
 			var scale = w/wide;
 			this.properties.size = attr.size*scale;
@@ -353,19 +323,10 @@
 			// Clear the canvas
 			svg.innerHTML = "";
 			this.areas = {};
-			if(this.grid) this.grid.remove();
-			delete this.grid;
+			if(grid) grid.remove();
 			constructed = false;
 			return this;
 		};
-		
-		function updatePos(q,r,layout){
-			if(layout=="odd-r" && (r&1) != 0) q += 0.5;  // "odd-r" horizontal layout shoves odd rows right
-			if(layout=="even-r" && (r&1) == 0) q += 0.5; // "even-r" horizontal layout shoves even rows right
-			if(layout=="odd-q" && (q&1) != 0) r += 0.5;  // "odd-q" vertical layout shoves odd columns down
-			if(layout=="even-q" && (q&1) == 0) r += 0.5; // "even-q" vertical layout shoves even columns down
-			return {'q':q,'r':r};
-		}
 
 		this.setMapping = function(mapping){
 			this.mapping = mapping;
@@ -373,61 +334,12 @@
 			var p = mapping.layout.split("-");
 			this.properties.shift = p[0];
 			this.properties.orientation = p[1];
-			
-			this.updateRange();
 
 			return this.initialized();
 		};
-		
-		this.updateRange = function(){
-
-			var region,p,q2,r2,xhalf;
-			
-			var xhalf = Math.sqrt(3)/4;
-			range = { 'r': {'min':Infinity,'max':-Infinity}, 'q': {'min':Infinity,'max':-Infinity} };
-			for(region in this.mapping.hexes){
-				if(this.mapping.hexes[region]){
-					p = this.mapping.hexes[region];
-					q2 = p.q;
-					r2 = p.r;
-					if(q2 > range.q.max) range.q.max = q2;
-					if(q2 < range.q.min) range.q.min = q2;
-					if(r2 > range.r.max) range.r.max = r2;
-					if(r2 < range.r.min) range.r.min = r2;
-				}
-			}
-			// Find range and mid points
-			range.q.d = range.q.max-range.q.min;
-			range.r.d = range.r.max-range.r.min;
-			range.q.mid = range.q.min + range.q.d/2;
-			range.r.mid = range.r.min + range.r.d/2;
-
-			if(this.properties.orientation=="r") range.q.mid += 0.25;
-			if(this.properties.orientation=="q") range.r.mid += 0.25;
-
-			// Add padding to range
-			range.q.min -= this.padding;
-			range.q.max += this.padding;
-			range.r.min -= this.padding;
-			range.r.max += this.padding;
-
-			this.range = clone(range);
-
-			// If we've passed a specific size for the hexes we use that otherwise we work it out
-			if(typeof attr.size!=="number") this.setHexSize(this.estimateSize());
-			this.setSize();
-			return this;
-		};
-
-		this.fitToRange = function(){
-			this.updateRange();
-			this.setHexSize(this.estimateSize());
-			this.setSize();
-			return this;
-		};
 
 		this.estimateSize = function(){
-			var s, nx, ny, dx, dy;
+			var s,nx,ny,dx,dy;
 			if(this.properties.orientation=="r"){
 				if(range.r.d == 0){
 					nx = range.q.d + 1;
@@ -438,7 +350,7 @@
 				} 
 				dy = (1.5*ny) + 0.5;
 				dx = nx*2;
-				return Math.min((2/Math.sqrt(3))*wide/dx,tall/dy)
+				return Math.min((2/Math.sqrt(3))*wide/dx,tall/dy);
 			}else{
 				if(range.q.d == 0){
 					nx = 1;
@@ -449,105 +361,35 @@
 				}
 				dx = (1.5*nx) + 0.5;
 				dy = ny*2;
-				return Math.min(wide/dx,(2/Math.sqrt(3))*tall/dy)
+				return Math.min(wide/dx,(2/Math.sqrt(3))*tall/dy);
 			}
 			return s;
 		};
 
-		this.setSize = function(size){
-			if(size) this.properties.size = size;
-			this.properties.s = { 'cos': Math.round(10*this.properties.size*Math.sqrt(3)/2)/10, 'sin': this.properties.size*0.5 };
-			this.properties.s.c = this.properties.s.cos.toFixed(2);
-			this.properties.s.s = this.properties.s.sin.toFixed(2);
-			return this;
-		};
-
 		this.getEdge = function(h){
-			if(this.properties){
-				var x,y,cs,ss,p,edges,positive,e;
-				cs = this.properties.s.cos;
-				ss = this.properties.s.sin;
-
-				e = Math.abs(h.e);
-				positive = (h.e >= 0);
-				if(typeof h.q==="number" && typeof h.r==="number" && typeof e==="number" && e >= 1 && e <= 6){
-					// Move to centre of first hexagon
-					p = updatePos(h.q,h.r,this.mapping.layout);
-					if(this.properties.orientation=="r"){
-						// Pointy topped
-						x = (wide/2) + ((p.q-this.range.q.mid) * cs * 2);
-						y = (tall/2) - ((p.r-this.range.r.mid) * ss * 3);
-					}else{
-						// Flat topped
-						x = (wide/2) + ((p.q-this.range.q.mid) * ss * 3);
-						y = (tall/2) - ((p.r-this.range.r.mid) * cs * 2);
-					}
-					if(this.properties.orientation == "r"){
-						// Pointy-topped hex edges
-						edges = [
-							[x,(y-2*ss),cs,ss],
-							[(x+cs),(y-ss),0,(2*ss)],
-							[(x+cs),(y+ss),-cs,ss],
-							[x,(y+2*ss),-cs,-ss],
-							[(x-cs),(y+ss),0,(-2*ss)],
-							[(x-cs),(y-ss),cs,-ss]
-						];
-					}else{
-						// Flat-topped hex edges
-						edges = [
-							[(x-ss),(y-cs),(2*ss),0],
-							[(x+ss),y-cs,ss,cs],
-							[(x+2*ss),y,-ss,cs],
-							[(x+ss),(y+cs),(-2*ss),0],
-							[(x-ss),y+cs,-ss,-cs],
-							[(x-2*ss),y,ss,-cs]
-						];
-					}
-					e = edges[e-1];
-					e[4] = e[0]+e[2];
-					e[5] = e[1]+e[3];
-					if(!positive) e = [e[4],e[5],-e[2],-e[3],e[0],e[1]];
-					// Round numbers to avoid floating point uncertainty
-					e[0] = roundTo(e[0],3);
-					e[1] = roundTo(e[1],3);
-					e[4] = roundTo(e[4],3);
-					e[5] = roundTo(e[5],3);
-					return e;
-				}
-			}
-			return null;
+			return (new Hexagon(h.q,h.r,this.mapping.layout)).getEdge(h.e);
 		};
-		this.drawHex = function(q,r){
-			if(this.properties){
-				var x,y,cs,ss,path,p;
-				cs = this.properties.s.cos;
-				ss = this.properties.s.sin;
 
-				p = updatePos(q,r,this.mapping.layout);
+		this.updateLabels = function(lkey,tkey){
+			var r,l,t;
+			for(r in this.areas){
+				if(this.mapping.hexes[r]){
+					this.areas[r]._lkey = lkey;
+					this.areas[r]._tkey = tkey;
 
-				if(this.properties.orientation=="r"){
-					// Pointy topped
-					x = (wide/2) + ((p.q-this.range.q.mid) * cs * 2);
-					y = (tall/2) - ((p.r-this.range.r.mid) * ss * 3);
-				}else{
-					// Flat topped
-					x = (wide/2) + ((p.q-this.range.q.mid) * ss * 3);
-					y = (tall/2) - ((p.r-this.range.r.mid) * cs * 2);
+					if(this.areas[r].label){
+						l = '';
+						if(typeof lkey==="string") l = (lkey in this.mapping.hexes[r] ? this.mapping.hexes[r][lkey] : "");
+						else l = this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl||"";
+						this.areas[r].label.innerHTML = this.options.formatLabel(l,{'hex':this.mapping.hexes[r],'overlay':false,'size':this.properties.size,'font-size':parseFloat(getComputedStyle(this.areas[r].label)['font-size'])||this.properties.s.sin,'line-height':parseFloat(getComputedStyle(this.areas[r].label)['line-height'])});
+					}
+					if(this.areas[r].tooltip){
+						t = '';
+						if(typeof tkey==="string") t = (tkey in this.mapping.hexes[r] ? this.mapping.hexes[r][tkey] : "");
+						else t =	this.mapping.hexes[r].Tooltip||this.mapping.hexes[r].tooltip||this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl||"";
+						this.areas[r].tooltip.innerHTML = this.options.formatTooltip(t,{'x':this.areas[r].pos.x||null,'y':this.areas[r].pos.y||null,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(this.style.default['font-size'])});
+					}
 				}
-				//x = parseFloat(x.toFixed(1));
-				path = [['M',[roundTo(x,3),roundTo(y,3)]]];
-				if(this.properties.orientation == "r"){
-					// Pointy topped
-					path.push(['m',[cs,-ss]]);
-					path.push(['l',[0,2*ss,-cs,ss,-cs,-ss,0,-2*ss,cs,-ss,cs,ss]]);
-					path.push(['z',[]]);
-				}else{
-					// Flat topped
-					path.push(['m',[-ss,cs]]);
-					path.push(['l',[2*ss,0,ss,-cs,-ss,-cs,-2*ss,0,-ss,cs]]);
-					path.push(['z',[]]);
-				}
-				return { 'array':path,'path':toPath(path),'x':x,'y':y };
 			}
 			return this;
 		};
@@ -573,133 +415,112 @@
 		
 		this.updateBoundaries = function(fn){
 			var props,n;
-			if(typeof fn!=="function") fn = function(){ return {}; };
+			if(typeof fn!=="function") fn = function(){ return {'stroke':'black','stroke-width':1}; };
 			for(n in this.mapping.boundaries){
 				props = fn.call(this,n,this.mapping.boundaries[n])||{};
 				props.fill = "none";
 				if(this.lines[n]) setAttr(this.lines[n],props);
 			}
+			return this;
 		};
-		
+
 		this.draw = function(){			
-			var r,q,h,hex;
 
-			this.updateRange();
-			var range = this.range;
-
-			function ev(e,t){
-				var rtn = [];
-				if(e.data.hexmap.callback[t]){
-					for(var c = 0; c < e.data.hexmap.callback[t].length; c++){
-						for(var a in e.data.hexmap.callback[t][c].attr){
-							if(e.data.hexmap.callback[t][c].attr[a]) e.data[a] = e.data.hexmap.callback[t][c].attr[a];
-						}
-						if(typeof e.data.hexmap.callback[t][c].fn==="function") rtn.push(e.data.hexmap.callback[t][c].fn.call(e.data['this']||this,e));
-					}
-				}
-				return rtn||false;
-			}
 			var events = {
 				'mouseover': function(e){ if(e.data.region){ e.data.hexmap.regionFocus(e.data.region); } ev(e,'mouseover'); },
 				'mouseout': function(e){ ev(e,'mouseout'); },
 				'click': function(e){ if(e.data.region){ e.data.hexmap.regionFocus(e.data.region); } ev(e,'click'); }
 			};
-			if((this.options.showgrid || this.options.clip) && !this.grid){
-				this.grid = svgEl('g');
-				setAttr(this.grid,{'class':'hex-grid-holder'});
-				for(q = range.q.min; q <= range.q.max; q++){
-					for(r = range.r.min; r <= range.r.max; r++){
-						h = this.drawHex(q,r);
-						if(this.options.showgrid){
-							hex = svgEl('path');
-							setAttr(hex,{'d':h.path,'class':'hex-grid','data-q':(q||"0"),'data-r':(r||"0"),'fill':(this.style.grid.fill||''),'fill-opacity':(this.style.grid['fill-opacity']||0.1),'stroke':(this.style.grid.stroke||'#aaa'),'stroke-opacity':(this.style.grid['stroke-opacity']||0.2)});
-							add(hex,this.grid);
-							addEvent('mouseover',hex,{type:'grid',hexmap:this,data:{'r':r,'q':q}},events.mouseover);
-							addEvent('mouseout',hex,{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.mouseout);
-							addEvent('click',hex,{type:'grid',hexmap:this,me:_obj,data:{'r':r,'q':q}},events.click);
-						}
-					}
-				}
-				add(this.grid,svg);
-			}
 
-			var min,max,_obj,defs,path,label,hexclip,id,g,x,y;
-			min = 50000;
-			max = 80000;
+			var _obj,defs,id,r;
 			_obj = this;
 			defs = svgEl('defs');
 			add(defs,svg);
 			id = (el.getAttribute('id')||'hex');
+			this.id = id;
 			if(attr.patterns) defs.innerHTML += attr.patterns.join("");
 
 			// Create hexagons
 			if(this.mapping.hexes){
-				add(hexes,svg);
+				add(datalayer,svg);
+				add(hexes,datalayer);
+
 				for(r in this.mapping.hexes){
 					if(this.mapping.hexes[r]){
-
-						h = this.drawHex(this.mapping.hexes[r].q,this.mapping.hexes[r].r);
-
 						if(!constructed){
-							x = roundTo(h.x,3);
-							y = roundTo(h.y,3);
-							g = svgEl('g');
-							g.classList.add('hex');
-							if (this.mapping.hexes[r].class) {
-								this.mapping.hexes[r].class
-									.split(' ')
-									.map((className) => {
-											g.classList.add(className);
-										}
-									);
-							}
-							setAttr(g,{'data-id':r,'role':'listitem'});
-							hexes.appendChild(g);
-							path = svgEl('path');
-							setAttr(path,{'d':h.path,'class':'hex-cell hex','transform-origin':x+'px '+y+'px','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r});
+							this.areas[r] = new Hexagon(this.mapping.hexes[r].q,this.mapping.hexes[r].r,this.mapping.layout);
+							this.areas[r].set(el,this.mapping.hexes[r],this);
 
-							g.appendChild(path);
-							this.areas[r] = {'hex':g,'path':path,'selected':false,'active':true,'data':this.mapping.hexes[r],'orig':h};
+							add(this.areas[r].hex,hexes);
 
 							// Attach events to our SVG group nodes
-							addEvent('mouseover',g,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r],pop:this.mapping.hexes[r].p},events.mouseover);
-							addEvent('mouseout',g,{type:'hex',hexmap:this,region:r,me:this.areas[r]},events.mouseout);
-							addEvent('click',g,{type:'hex',hexmap:this,region:r,me:this.areas[r],data:this.mapping.hexes[r]},events.click);
-
-							if(this.options.showlabel){
-								if(this.style['default']['font-size'] >= this.options.minFontSize){
-									if(this.options.clip){
-										// Make all the clipping areas
-										this.areas[r].clipid = (el.getAttribute('id')||'hex')+'-clip-'+r;
-										this.areas[r].clip = svgEl('clipPath');
-										this.areas[r].clip.setAttribute('id',this.areas[r].clipid);
-										hexclip = svgEl('path');
-										setAttr(hexclip,{'d':h.path,'transform-origin':h.x+'px '+h.y+'px'});
-										add(hexclip,this.areas[r].clip);
-										add(this.areas[r].clip,defs);
-									}
-									label = svgEl('text');
-									// Add to DOM
-									g.appendChild(label);
-									label.innerHTML = this.options.formatLabel(this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl,{'x':h.x,'y':h.y,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(this.style.default['font-size'])});
-									setAttr(label,{'x':x,'y':y,'transform-origin':x+'px '+y+'px','dominant-baseline':'central','data-q':this.mapping.hexes[r].q,'data-r':this.mapping.hexes[r].r,'class':'hex-label','text-anchor':'middle','font-size':this.style['default']['font-size']+'px','title':(this.mapping.hexes[r].n || r),'_region':r});
-									if(this.options.clip) setAttr(label,{'clip-path':'url(#'+this.areas[r].clipid+')'});
-									this.areas[r].label = label;
-									this.areas[r].labelprops = {x:x,y:y};
-								}
-							}
-
+							addEvent('mouseover',this.areas[r].hex,{type:'hex',hexmap:this,region:r,data:this.mapping.hexes[r]},events.mouseover);
+							addEvent('mouseout',this.areas[r].hex,{type:'hex',hexmap:this,region:r,me:this.areas[r]},events.mouseout);
+							addEvent('click',this.areas[r].hex,{type:'hex',hexmap:this,region:r,me:this.areas[r],data:this.mapping.hexes[r]},events.click);
 						}
 						this.setHexStyle(r);
-						setAttr(this.areas[r].path,{'stroke':this.style['default'].stroke,'stroke-opacity':this.style['default']['stroke-opacity'],'stroke-width':this.style['default']['stroke-width'],'title':this.mapping.hexes[r].n,'data-regions':r,'style':'cursor: pointer;'});
+						setAttr(this.areas[r].path,{'stroke':this.style['default'].stroke,'stroke-opacity':this.style['default']['stroke-opacity'],'stroke-width':this.style['default']['stroke-width'],'style':'cursor: pointer;'});
 					}
 				}
+
+				if(this.options.showgrid){
+					if(!grid){
+						grid = svgEl("rect");
+						setAttr(grid,{'id':'grid','x':"0%",'y':"0%",'width':"100%",'height':"100%"});
+						svg.prepend(grid);
+					}
+					setAttr(grid,{'fill':'url(#'+id+'-pattern-'+this.properties.orientation});
+					this._origin.addPattern(el,this.id+'-pattern-q',"odd-q",this._origin.x,this._origin.y);
+					this._origin.addPattern(el,this.id+'-pattern-r',"odd-r",this._origin.x,this._origin.y);
+				}
+				this.updateLabels();
 			}
 
 			// Create lines
-			if(this.mapping.boundaries){
-				add(lines,svg);
+			this.drawBoundaries();
 
+			if(this.mapping.hexes) add(overlay,svg);
+
+			this.fitToRange();
+
+			constructed = true;
+
+			return this;
+		};
+		
+		this.fitToRange = function(){
+
+			var dx,dy,w,h,extent,r;
+			extent = new Extent();
+			for(r in this.areas) extent.extend(this.areas[r]);
+
+			dx = extent.x.max - extent.x.min;
+			dy = extent.y.max - extent.y.min;
+			w = dx;
+			h = dy;
+			if(h > w/aspectratio){
+				w = h*aspectratio;
+				extent.x.min -= (w-dx)/2;
+				extent.x.max -= (w-dx)/2;
+				extent.y.min -= (h-dy)/2;
+				extent.y.max -= (h-dy)/2;
+			}
+
+			setAttr(svg,{'viewBox':extent.x.min.toFixed(2)+' '+extent.y.min.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)});
+
+			if(grid) setAttr(grid,{'id':'grid','x':extent.x.min.toFixed(2),'y':extent.y.min.toFixed(2)});
+
+			return this;
+		};
+		
+		this.drawBoundaries = function(){
+			if(this.mapping.boundaries){
+				if(!lines){
+					lines = svgEl('g');
+					lines.classList.add('lines');
+				}
+
+				lines.innerHTML = "";
 				var n,s,d,boundaries,prevedge,edge,join;
 				this.lines = {};
 				boundaries = this.mapping.boundaries;
@@ -711,25 +532,24 @@
 						for(s = 0; s < boundaries[n].edges.length; s++){
 							edge = this.getEdge(boundaries[n].edges[s]);
 							if(edge){
-								join = (prevedge && (edge[0]==prevedge[4] && edge[1]==prevedge[5])) ? 'L' : 'M';
-								d += join+roundTo(edge[0],2)+' '+roundTo(edge[1],2)+'l'+roundTo(edge[2],2)+' '+roundTo(edge[3],2);
+								join = (prevedge && (edge[0]==prevedge[4] && edge[1]==prevedge[5])) ? '' : 'M';
+								if(join) d += join+edge[0]+' '+edge[1];
+								if(edge[2]==0) d += 'v'+roundTo(edge[3],2);
+								else if(edge[3]==0) d += 'h'+roundTo(edge[2],2);
+								else d += 'l'+roundTo(edge[2],2)+' '+roundTo(edge[3],2);
 								prevedge = edge;
 							}
 						}
 					}
 					if(d){
 						this.lines[n] = svgEl('path');
-						setAttr(this.lines[n],{'d':d,'data-name':n});
-						lines.append(this.lines[n]);
+						setAttr(this.lines[n],{'d':d,'data-name':n,'vector-effect':'non-scaling-stroke'});
+						add(this.lines[n],lines);
 					}
 				}
+				add(lines,svg);
 				this.updateBoundaries();
 			}
-
-			if(this.mapping.hexes) add(overlay,svg);
-
-			constructed = true;
-
 			return this;
 		};
 
@@ -738,7 +558,174 @@
 
 		return this;
 	}
-	OI.hexmap = HexMap;
+
+	function Hexagon(q,r,layout){
+		if(!layout) layout = "odd-r";
+		var _side,_sep,_short,_hexpath,_half;
+		_side = 60;	// The length of a hexagon side
+		_half = _side/2;
+		_sep = _side*1.5;
+		_short = parseFloat(Math.round(_side*Math.cos(Math.PI/6)).toFixed(1));
+		if(layout.indexOf('-r')>0) _hexpath = 'm0-'+_side+'l'+_short+','+_half+',0,'+_side+',-'+_short+','+_half+',-'+_short+'-'+_half+',0-'+_side+','+_short+'-'+_half+'z';
+		else _hexpath = 'm'+_half+'-'+_short+'l'+_half+' '+_short+',-'+_half+' '+_short+',-'+_side+' 0,-'+_half+' -'+_short+','+_half+' -'+_short+','+_side+' 0z';
+		this.set = function(el,attr,hexmap){
+			var label,defs,g,path,tt,p;
+			defs = el.querySelector('svg defs');
+			q = attr.q;
+			r = attr.r;
+			g = svgEl('g');
+			g.classList.add('hex');
+			if(attr.class) g.classList.add(...attr.class.split(' '));
+			setAttr(g,{'role':'cell','data-q':q,'data-r':r,'aria-label':(attr.name||attr.n)});
+
+			path = svgEl('path');
+			add(path,g);
+			setAttr(path,{'d':_hexpath,'vector-effect':'non-scaling-stroke'});
+
+			tt = svgEl('title');
+			tt.innerHTML = (attr.name||attr.n);
+			add(tt,path);
+
+			p = this.getXY();
+			this.pos = p;
+			setAttr(g,{'transform':'translate('+p.x+' '+p.y+')'});
+
+			this.hex = g;
+			this.path = path;
+			this.selected = false;
+			this.active = true;
+			this.data = attr;
+			this._extent = (layout.indexOf('-r') > 0) ? {'x':{'min':p.x-_short,'max':p.x+_short},'y':{'min':p.y-_side,'max':p.y+_side}} : {'x':{'min':p.x-_side,'max':p.x+_side},'y':{'min':p.y-_short,'max':p.y+_short}};
+
+			setAttr(path,{'stroke':hexmap.style['default'].stroke,'stroke-opacity':hexmap.style['default']['stroke-opacity'],'stroke-width':hexmap.style['default']['stroke-width'],'style':'cursor: pointer;'});
+
+			if(hexmap.options.showlabel){
+				if(hexmap.style['default']['font-size'] >= hexmap.options.minFontSize){
+					label = svgEl('text');
+					// Add to DOM
+					add(label,g);
+					setAttr(label,{'dominant-baseline':'central','data-q':attr.q,'data-r':attr.r,'class':'hex-label','text-anchor':'middle','font-size':_half+'px','title':(attr.n || r)});
+					if(hexmap.options.clip){
+						var clipid = (el.getAttribute('id')||'hex')+'-clip-'+r;
+						var clip = document.getElementById(clipid);
+						if(!clip){
+							clip = svgEl('clipPath');
+							clip.id = clipid;
+						}else{
+							clip.innerHTML = "";
+						}
+						var hexclip = path.cloneNode(true);
+						clip.classList.add('hover');
+						add(hexclip,clip);
+						add(clip,defs);	
+						this.clip = clip;
+						setAttr(label,{'clip-path':'url(#'+clipid+')'});
+					}
+					this.label = label;
+					this.tooltip = tt;
+				}
+			}
+
+			return this;
+		};
+		this.getXY = function(){
+			var x,y;
+			if(layout=="odd-r"){
+				x = q*_short*2 + (r&1==1 ? _short : 0);
+				y = -r*_sep;
+			}else if(layout=="even-r"){
+				x = q*_short*2 + (r&1==1 ? -_short : 0);
+				y = -r*_sep;
+			}else if(layout=="odd-q"){
+				x = q*_sep;
+				y = -(r*_short*2 + (q&1==1 ? _short : 0));
+			}else if(layout=="even-q"){
+				x = q*_sep;
+				y = -(r*_short*2 + (q&1==1 ? -_short : 0));
+			}
+			return {x:x,y:y};
+		};
+		this.getEdge = function(edge){
+			var x,y,p,edges,positive,e,ed,cs,ss;
+
+			ed = Math.abs(edge);
+			positive = (edge >= 0);
+
+			if(typeof ed==="number" && ed >= 1 && ed <= 6){
+
+				// Get centre of the hexagon
+				p = this.getXY();
+				x = p.x;
+				y = p.y;
+				cs = _short;
+				ss = _half;
+				if(layout.indexOf("-r") > 0){
+					// Pointy-topped hex edges
+					edges = [
+						[x,(y-2*ss),cs,ss],
+						[(x+cs),(y-ss),0,(2*ss)],
+						[(x+cs),(y+ss),-cs,ss],
+						[x,(y+2*ss),-cs,-ss],
+						[(x-cs),(y+ss),0,(-2*ss)],
+						[(x-cs),(y-ss),cs,-ss]
+					];
+				}else{
+					// Flat-topped hex edges
+					edges = [
+						[(x-ss),(y-cs),(2*ss),0],
+						[(x+ss),y-cs,ss,cs],
+						[(x+2*ss),y,-ss,cs],
+						[(x+ss),(y+cs),(-2*ss),0],
+						[(x-ss),y+cs,-ss,-cs],
+						[(x-2*ss),y,ss,-cs]
+					];
+				}
+				e = edges[ed-1];
+				e[4] = e[0]+e[2];
+				e[5] = e[1]+e[3];
+				if(!positive) e = [e[4],e[5],-e[2],-e[3],e[0],e[1]];
+				// Round numbers to avoid floating point uncertainty
+				e[0] = roundTo(e[0],3);
+				e[1] = roundTo(e[1],3);
+				e[4] = roundTo(e[4],3);
+				e[5] = roundTo(e[5],3);
+				return e;
+			}
+			return null;
+		};
+		this.getPath = function(){ return _hexpath; };
+		this.addPattern = function(el,id,lay,x,y){
+			var defs = el.querySelector('defs');
+			var p = document.getElementById(id);
+			if(!p){
+				p = svgEl("pattern");
+				setAttr(p,{'id':id,'patternUnits':'userSpaceOnUse'});
+			}
+			if(lay.indexOf('-r')>0){
+				setAttr(p,{'width':(_short*2),'height':(_side*3),'x':x,'y':y});
+				p.innerHTML = '<path stroke="#cbd5e1" stroke-width="0.7" d="M'+_short+' '+(_side/2)+'v-'+(_side/2)+'m0 '+(_side/2)+'l'+_short+' '+(_side/2)+'v'+_side+'l-'+_short+' '+(_side/2)+'v'+(_side/2)+'m0 -'+(_side/2)+'l-'+_short+' -'+(_side/2)+' v-'+_side+'l'+_short+' -'+(_side/2)+'" fill="none"	vector-effect="non-scaling-stroke" />';
+			}else{
+				setAttr(p,{'width':(_side*3),'height':(_short*2),'x':x,'y':y});
+				p.innerHTML = '<path stroke="#cbd5e1" stroke-width="0.7" d="M'+(_side*2)+' 0H'+_side+'L'+(_side/2)+' '+_short+'l'+(_side/2)+' '+_short+'h'+_side+'l'+(_side/2)+'-'+_short+'zM150 '+_short+'h'+(_side/2)+'M0 '+_short+'h'+(_side/2)+'" fill="none"	vector-effect="non-scaling-stroke" />';
+			}
+			add(p,defs);
+			return this;
+		};
+		return this;
+	}
+
+	function Extent(){
+		this.x = {'min':Infinity,'max':-Infinity};
+		this.y = {'min':Infinity,'max':-Infinity};
+		this.extend = function(h){
+			this.x.min = Math.min(this.x.min,h._extent.x.min);
+			this.x.max = Math.max(this.x.max,h._extent.x.max);
+			this.y.min = Math.min(this.y.min,h._extent.y.min);
+			this.y.max = Math.max(this.y.max,h._extent.y.max);
+			return this;
+		};
+		return this;
+	}
 
 	function Log(opt){
 		// Console logging version 2.0
@@ -763,12 +750,11 @@
 
 	// Helper functions
 	var ns = 'http://www.w3.org/2000/svg';
-	function prepend(el,to) { to.insertBefore(el, to.firstChild); }
 	function add(el,to){ return to.appendChild(el); }
 	function clone(a){ return JSON.parse(JSON.stringify(a)); }
 	function setAttr(el,prop){
 		for(var p in prop){
-			if(prop[p]) el.setAttribute(p,prop[p]);
+			if(typeof prop[p]!=="undefined") el.setAttribute(p,prop[p]);
 		}
 		return el;
 	}
@@ -786,11 +772,23 @@
 			}
 		}
 	}
-	function toPath(p) {
-		var str = '';
-		for(var i = 0; i < p.length; i++) str += ((p[i][0]) ? p[i][0] : ' ')+(p[i][1].length > 0 ? p[i][1].join(',') : ' ');
-		return str;
+	function ev(e,t){
+		var rtn = [];
+		if(e.data.hexmap.callback[t]){
+			for(var c = 0; c < e.data.hexmap.callback[t].length; c++){
+				for(var a in e.data.hexmap.callback[t][c].attr){
+					if(e.data.hexmap.callback[t][c].attr[a]) e.data[a] = e.data.hexmap.callback[t][c].attr[a];
+				}
+				if(typeof e.data.hexmap.callback[t][c].fn==="function") rtn.push(e.data.hexmap.callback[t][c].fn.call(e.data['this']||this,e));
+			}
+		}
+		return rtn||false;
+	}
+	function roundTo(v,prec){
+		if(typeof v==="number") v = v.toFixed(prec);
+		return v.replace(/\.([0-9]+)0+$/,function(m,p1){ return "."+p1; }).replace(/\.0+$/,"");
 	}
 
+	OI.hexmap = HexMap;
 	root.OI = OI;
 })(window || this);
