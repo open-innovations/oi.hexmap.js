@@ -69,8 +69,8 @@
 
 	/* Main site styling */
 	html, body {
-		padding: 0px;
-		margin: 0px;
+		padding: 0;
+		margin: 0;
 		min-height: 100%!important;
 		height: 100%!important;
 		background-color: #ffffff;
@@ -80,7 +80,7 @@
 		line-height: 1.44em;
 	}
 	h1,h2,h3,h4 { font-family: Poppins; line-height: 1em; }
-	h1 { font-size: 2em; margin-top: 0em; }
+	h1 { font-size: 2em; margin-top: 0; }
 	h2 { font-size: 1.7em; margin-top: 1.7647058823529411em; font-weight: 500; }
 	h3 { font-size: 1.4em; margin-top: 1.428571em; }
 	h4 { font-size: 1.2em; margin-bottom: 0.2em; }
@@ -89,10 +89,10 @@
 	.holder { position: relative; width: 1080px; max-width: 100%; margin: auto; }
 	.padded { padding: 1em; }
 	h1:first-child, h2:first-child, h3:first-child { margin-top: 0; }
-	footer { width: 100%; padding: 1em; padding-bottom: 3em; }
+	footer { width: 100%; padding: 1em 1em 3em; }
 	footer a, footer a:visited { color: inherit; }
 	code, pre { font-family: monospace; color: #555555; background-color: #efefef; padding: 0.125em 0.25em; }
-	button, .button { border: 0px; font-size: 1em; background-color: #efefef; color: black; text-decoration: none!important; display: inline-block; padding: 0.5em 1em; cursor: pointer; vertical-align: top; line-height: 1.25em; }
+	button, .button { border: 0; font-size: 1em; background-color: #efefef; color: black; text-decoration: none!important; display: inline-block; padding: 0.5em 1em; cursor: pointer; vertical-align: top; line-height: 1.25em; }
 	.prettyprint {
 		background: #efefef;
 		padding: 1em;
@@ -120,7 +120,7 @@
 		color: #999;
 	}
 	figure:hover figcaption { color: inherit; }
-	ol { margin:1rem 0; margin-left: 1.5rem; }
+	ol { margin: 1rem 0 1rem 1.5rem; }
 	</style>
 </head>
 <body class="b6-bg">
@@ -146,8 +146,7 @@
 			<style>
 			#hero {
 				width: 100%;
-				margin-top: 200px;
-				margin-top: 1em;
+                margin-top: 1em;
 				overflow: hidden;
 			}
 			</style>
@@ -310,7 +309,7 @@
 						#hexmap3b .hex text { display: none; }
 					}
 					#hexmap3b .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.5rem; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
-					#hexmap3b .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
+					#hexmap3b .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0; transform: translate3d(-50%,-100%,0); border-bottom-color: black; }
 					</style>
 					<figure>
 						<div id="hexmap3b"></div>
@@ -375,7 +374,7 @@
 						#hexmap3 .hex-label { display: none; }
 					}
 					#hexmap3 .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.5rem; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
-					#hexmap3 .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
+					#hexmap3 .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0; transform: translate3d(-50%,-100%,0); border-bottom-color: black; }
 					</style>
 					<figure>
 						<div id="hexmap3"></div>
@@ -487,7 +486,7 @@
 						#hexmap3c .hex .hex-label { display: none; }
 					}
 					#hexmap3c .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.5rem; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
-					#hexmap3c .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
+					#hexmap3c .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0; transform: translate3d(-50%,-100%,0); border-bottom-color: black; }
 					</style>
 					<figure>
 						<div id="hexmap3c"></div>
