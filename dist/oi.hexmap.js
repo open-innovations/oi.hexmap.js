@@ -284,7 +284,16 @@
 			// Create SVG container
 			if(!svg){
 				svg = svgEl('svg');
-				setAttr(svg,{'class':'oi-map-map','xmlns':ns,'version':'1.1','overflow':'visible','viewBox':(attr.viewBox||'0 0 '+w+' '+h),'style':'max-width:100%;','preserveAspectRatio':'xMidYMin meet','vector-effect':'non-scaling-stroke'});
+				setAttr(svg,{
+					'class':'oi-map-map',
+					'xmlns':ns,
+					'version':'1.1',
+					'overflow':'visible',
+					'viewBox':(attr.viewBox||'0 0 '+w+' '+h),
+					'style':'max-width:100%;',
+					'preserveAspectRatio':'xMidYMin meet',
+					'vector-effect':'non-scaling-stroke'
+				});
 				add(svg,this.el);
 				// Create data layer
 				datalayer = svgEl('g');
@@ -380,13 +389,28 @@
 						l = '';
 						if(typeof lkey==="string") l = (lkey in this.mapping.hexes[r] ? this.mapping.hexes[r][lkey] : "");
 						else l = this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl||"";
-						this.areas[r].label.innerHTML = this.options.formatLabel(l,{'hex':this.mapping.hexes[r],'overlay':false,'size':this.properties.size,'font-size':parseFloat(getComputedStyle(this.areas[r].label)['font-size'])||this.properties.s.sin,'line-height':parseFloat(getComputedStyle(this.areas[r].label)['line-height'])});
+						this.areas[r].label.innerHTML = this.options.formatLabel(l,{
+							'hex':this.mapping.hexes[r],
+							'overlay':false,
+							'size':this.properties.size,
+							'font-size':parseFloat(getComputedStyle(this.areas[r].label)['font-size'])||this.properties.s.sin,
+							'line-height':parseFloat(getComputedStyle(this.areas[r].label)['line-height'])
+						});
 					}
 					if(this.areas[r].tooltip){
 						t = '';
-						if(typeof tkey==="string") t = (tkey in this.mapping.hexes[r] ? this.mapping.hexes[r][tkey] : "");
-						else t = this.mapping.hexes[r].Tooltip||this.mapping.hexes[r].tooltip||this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl||"";
-						this.areas[r].tooltip.innerHTML = this.options.formatTooltip(t,{'x':this.areas[r].pos.x||null,'y':this.areas[r].pos.y||null,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(this.style.default['font-size'])});
+						if (typeof tkey==="string") {
+							t = (tkey in this.mapping.hexes[r] ? this.mapping.hexes[r][tkey] : "");
+						} else {
+							t = this.mapping.hexes[r].Tooltip || this.mapping.hexes[r].tooltip || this.mapping.hexes[r].n || this.mapping.hexes[r].msoa_name_hcl || "";
+						}
+						this.areas[r].tooltip.innerHTML = this.options.formatTooltip(t,{
+							'x':this.areas[r].pos.x||null,
+							'y':this.areas[r].pos.y||null,
+							'hex':this.mapping.hexes[r],
+							'size':this.properties.size,
+							'font-size':parseFloat(this.style.default['font-size'])
+						});
 					}
 				}
 			}
@@ -414,7 +438,14 @@
 		
 		this.updateBoundaries = function(fn){
 			let props, n;
-			if(typeof fn!=="function") fn = function(){ return {'stroke':'black','stroke-width':1}; };
+			if (typeof fn !== "function") {
+				fn = function(){
+					return {
+						'stroke':'black',
+						'stroke-width':1
+					};
+				};
+			}
 			for(n in this.mapping.boundaries){
 				props = fn.call(this,n,this.mapping.boundaries[n])||{};
 				props.fill = "none";
@@ -424,7 +455,6 @@
 		};
 
 		this.draw = function(){
-
 			const events = {
 				'mouseover': function (e) {
 					if (e.data.region) {
@@ -477,7 +507,13 @@
 				if(this.options.showgrid){
 					if(!grid){
 						grid = svgEl("rect");
-						setAttr(grid,{'id':'grid','x':"0%",'y':"0%",'width':"100%",'height':"100%"});
+						setAttr(grid,{
+							'id':'grid',
+							'x':"0%",
+							'y':"0%",
+							'width':"100%",
+							'height':"100%"
+						});
 						svg.prepend(grid);
 					}
 					setAttr(grid,{'fill':'url(#'+id+'-pattern-'+this.properties.orientation});
@@ -519,7 +555,13 @@
 
 			setAttr(svg,{'viewBox':extent.x.min.toFixed(2)+' '+extent.y.min.toFixed(2)+' '+w.toFixed(2)+' '+h.toFixed(2)});
 
-			if(grid) setAttr(grid,{'id':'grid','x':extent.x.min.toFixed(2),'y':extent.y.min.toFixed(2)});
+			if (grid) {
+				setAttr(grid, {
+					'id': 'grid',
+					'x': extent.x.min.toFixed(2),
+					'y': extent.y.min.toFixed(2)
+				});
+			}
 
 			return this;
 		};
@@ -544,17 +586,27 @@
 							edge = this.getEdge(boundaries[n].edges[s]);
 							if(edge){
 								join = (prevedge && (edge[0]==prevedge[4] && edge[1]==prevedge[5])) ? '' : 'M';
-								if(join) d += join+edge[0]+' '+edge[1];
-								if(edge[2]==0) d += 'v'+roundTo(edge[3],2);
-								else if(edge[3]==0) d += 'h'+roundTo(edge[2],2);
-								else d += 'l'+roundTo(edge[2],2)+' '+roundTo(edge[3],2);
+								if (join) {
+									d += join + edge[0] + ' ' + edge[1];
+								}
+								if (edge[2]==0) {
+									d += 'v' + roundTo(edge[3], 2);
+								} else if (edge[3]==0) {
+									d += 'h' + roundTo(edge[2], 2);
+								} else {
+									d += 'l' + roundTo(edge[2], 2) + ' ' + roundTo(edge[3], 2);
+								}
 								prevedge = edge;
 							}
 						}
 					}
 					if(d){
 						this.lines[n] = svgEl('path');
-						setAttr(this.lines[n],{'d':d,'data-name':n,'vector-effect':'non-scaling-stroke'});
+						setAttr(this.lines[n],{
+							'd':d,
+							'data-name':n,
+							'vector-effect':'non-scaling-stroke'
+						});
 						add(this.lines[n],lines);
 					}
 				}
@@ -570,15 +622,17 @@
 		return this;
 	}
 
-	function Hexagon(q,r,layout){
-		if(!layout) layout = "odd-r";
+	function Hexagon(q,r,layout='odd-r'){
 		let _side, _sep, _short, _hexpath, _half;
 		_side = 60; // The length of a hexagon side
 		_half = _side/2;
 		_sep = _side*1.5;
 		_short = parseFloat(Math.round(_side*Math.cos(Math.PI/6)).toFixed(1));
-		if(layout.indexOf('-r')>0) _hexpath = 'm0-'+_side+'l'+_short+','+_half+',0,'+_side+',-'+_short+','+_half+',-'+_short+'-'+_half+',0-'+_side+','+_short+'-'+_half+'z';
-		else _hexpath = 'm'+_half+'-'+_short+'l'+_half+' '+_short+',-'+_half+' '+_short+',-'+_side+' 0,-'+_half+' -'+_short+','+_half+' -'+_short+','+_side+' 0z';
+		if (layout.indexOf('-r')>0) {
+			_hexpath = 'm0-' + _side + 'l' + _short + ',' + _half + ',0,' + _side + ',-' + _short + ',' + _half + ',-' + _short + '-' + _half + ',0-' + _side + ',' + _short + '-' + _half + 'z';
+		} else {
+			_hexpath = 'm' + _half + '-' + _short + 'l' + _half + ' ' + _short + ',-' + _half + ' ' + _short + ',-' + _side + ' 0,-' + _half + ' -' + _short + ',' + _half + ' -' + _short + ',' + _side + ' 0z';
+		}
 		this.set = function(el,attr,hexmap){
 			let label, defs, g, path, tt, p;
 			defs = el.querySelector('svg defs');
@@ -587,11 +641,19 @@
 			g = svgEl('g');
 			g.classList.add('hex');
 			if(attr.class) g.classList.add(...attr.class.split(' '));
-			setAttr(g,{'role':'cell','data-q':q,'data-r':r,'aria-label':(attr.name||attr.n)});
+			setAttr(g,{
+				'role':'cell',
+				'data-q':q,
+				'data-r':r,
+				'aria-label':(attr.name||attr.n)
+			});
 
 			path = svgEl('path');
 			add(path,g);
-			setAttr(path,{'d':_hexpath,'vector-effect':'non-scaling-stroke'});
+			setAttr(path,{
+				'd':_hexpath,
+				'vector-effect':'non-scaling-stroke'
+			});
 
 			tt = svgEl('title');
 			tt.innerHTML = (attr.name||attr.n);
@@ -606,16 +668,51 @@
 			this.selected = false;
 			this.active = true;
 			this.data = attr;
-			this._extent = (layout.indexOf('-r') > 0) ? {'x':{'min':p.x-_short,'max':p.x+_short},'y':{'min':p.y-_side,'max':p.y+_side}} : {'x':{'min':p.x-_side,'max':p.x+_side},'y':{'min':p.y-_short,'max':p.y+_short}};
+			if (layout.indexOf('-r') > 0) {
+				this._extent = {
+					'x': {
+						'min':p.x-_short,
+						'max':p.x+_short
+					},
+					'y': {
+						'min':p.y-_side,
+						'max':p.y+_side
+					}
+				};
+			} else {
+				this._extent = {
+					'x': {
+						'min':p.x-_side,
+						'max':p.x+_side
+					},
+					'y': {
+						'min':p.y-_short,
+						'max':p.y+_short
+					}
+				};
+			}
 
-			setAttr(path,{'stroke':hexmap.style['default'].stroke,'stroke-opacity':hexmap.style['default']['stroke-opacity'],'stroke-width':hexmap.style['default']['stroke-width'],'style':'cursor: pointer;'});
+			setAttr(path,{
+				'stroke':hexmap.style['default'].stroke,
+				'stroke-opacity':hexmap.style['default']['stroke-opacity'],
+				'stroke-width':hexmap.style['default']['stroke-width'],
+				'style':'cursor: pointer;'
+			});
 
 			if(hexmap.options.showlabel){
 				if(hexmap.style['default']['font-size'] >= hexmap.options.minFontSize){
 					label = svgEl('text');
 					// Add to DOM
 					add(label,g);
-					setAttr(label,{'dominant-baseline':'central','data-q':attr.q,'data-r':attr.r,'class':'hex-label','text-anchor':'middle','font-size':_half+'px','title':(attr.n || r)});
+					setAttr(label,{
+						'dominant-baseline':'central',
+						'data-q':attr.q,
+						'data-r':attr.r,
+						'class':'hex-label',
+						'text-anchor':'middle',
+						'font-size':_half+'px',
+						'title':(attr.n || r)
+					});
 					if(hexmap.options.clip){
 						const clipid = (el.getAttribute('id') || 'hex') + '-clip-' + r;
 						let clip = document.getElementById(clipid);
@@ -710,13 +807,24 @@
 			let p = document.getElementById(id);
 			if(!p){
 				p = svgEl("pattern");
-				setAttr(p,{'id':id,'patternUnits':'userSpaceOnUse'});
+				setAttr(p,{
+					'id':id,
+					'patternUnits':'userSpaceOnUse'
+				});
 			}
 			if(lay.indexOf('-r')>0){
-				setAttr(p,{'width':(_short*2),'height':(_side*3),'x':x,'y':y});
+				setAttr(p,{
+					'width':(_short*2),
+					'height':(_side*3),'x':x,'y':y
+				});
 				p.innerHTML = '<path stroke="#cbd5e1" stroke-width="0.7" d="M'+_short+' '+(_side/2)+'v-'+(_side/2)+'m0 '+(_side/2)+'l'+_short+' '+(_side/2)+'v'+_side+'l-'+_short+' '+(_side/2)+'v'+(_side/2)+'m0 -'+(_side/2)+'l-'+_short+' -'+(_side/2)+' v-'+_side+'l'+_short+' -'+(_side/2)+'" fill="none"	vector-effect="non-scaling-stroke" />';
 			}else{
-				setAttr(p,{'width':(_side*3),'height':(_short*2),'x':x,'y':y});
+				setAttr(p,{
+					'width':(_side*3),
+					'height':(_short*2),
+					'x':x,
+					'y':y
+				});
 				p.innerHTML = '<path stroke="#cbd5e1" stroke-width="0.7" d="M'+(_side*2)+' 0H'+_side+'L'+(_side/2)+' '+_short+'l'+(_side/2)+' '+_short+'h'+_side+'l'+(_side/2)+'-'+_short+'zM150 '+_short+'h'+(_side/2)+'M0 '+_short+'h'+(_side/2)+'" fill="none"	vector-effect="non-scaling-stroke" />';
 			}
 			add(p,defs);
@@ -761,14 +869,18 @@
 
 	// Helper functions
 	function add(el,to){ return to.appendChild(el); }
+
 	function clone(a){ return JSON.parse(JSON.stringify(a)); }
+
 	function setAttr(el,prop){
 		for(const p in prop){
 			if(typeof prop[p]!=="undefined") el.setAttribute(p,prop[p]);
 		}
 		return el;
 	}
+
 	function svgEl(t){ return document.createElementNS(ns,t); }
+
 	function addEvent(ev,el,attr,fn){
 		if(el){
 			if(!el.length) el = [el];
@@ -782,6 +894,7 @@
 			}
 		}
 	}
+
 	function ev(e,t){
 		const rtn = [];
 		if(e.data.hexmap.callback[t]){
@@ -794,6 +907,7 @@
 		}
 		return rtn||false;
 	}
+
 	function roundTo(v,prec){
 		if(typeof v==="number") v = v.toFixed(prec);
 		return v.replace(/\.([0-9]+)0+$/,function(m,p1){ return "."+p1; }).replace(/\.0+$/,"");
