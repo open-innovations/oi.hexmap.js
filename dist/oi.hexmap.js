@@ -86,7 +86,7 @@
 			'clip': attr.label.clip,
 			'showgrid': attr.grid.show,
 			'showlabel': attr.label.show,
-			'formatLabel': (typeof attr.label.format==="function" ? attr.label.format : function(txt,attr){ return txt.substr(0,3); }),
+			'formatLabel': (typeof attr.label.format==="function" ? attr.label.format : function(txt,attr){ return txt.substring(0,3); }),
 			'formatTooltip': (typeof attr.tooltip.format==="function" ? attr.tooltip.format : function(txt,attr){ return txt; }),
 			'minFontSize': (typeof attr.minFontSize==="number" ? attr.minFontSize : 4)
 		};

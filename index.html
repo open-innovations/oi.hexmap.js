@@ -240,7 +240,7 @@
 								//		* y - the vertical position in pixels
 								//		* hex - the hexagon's HexJSON properties
 								'format': function(txt,attr){
-									tspans = '<tspan class="off">'+txt.substr(0,3)+'</tspan>';
+									tspans = '<tspan class="off">'+txt.substring(0,3)+'</tspan>';
 									lines = txt.split(/ /);
 									lines.push(attr.hex.pop.toLocaleString());
 									var lineheight = attr['line-height']||(attr['font-size']*1.5);
