@@ -25,7 +25,7 @@
 	function HexMap(el,attr){
 
 		this.version = "0.8.3";
-		if(!attr) attr	= {};
+		if(!attr) attr = {};
 		this._attr = attr;
 		this.title = "OI HexMap";
 		this.logging = (location.search.indexOf('debug=true') >= 0);
@@ -144,7 +144,7 @@
 					data = this.mapping;
 				}else this.log('warn','Layout has changed so over-writing existing hexes.');
 			}
-			this.load(data,prop,fn);				
+			this.load(data,prop,fn);
 		};
 
 		// We'll need to change the sizes when the window changes size
@@ -260,7 +260,7 @@
 			return this;
 		};
 
-		// Add events (mouseover, mouseout, click)	
+		// Add events (mouseover, mouseout, click)
 		this.on = function(type,prop,fn){
 			if(typeof prop==="function" && !fn){
 				fn = prop;
@@ -301,8 +301,8 @@
 				overlay.classList.add('overlay');
 			}
 			setAttr(svg,{'style':'width:'+w+'px;max-width: 100%; max-height: 100%; margin: auto; background: none;'});
-			
 			var scale = w/wide;
+
 			this.properties.size = attr.size*scale;
 			wide = w;
 			tall = h;
@@ -386,7 +386,7 @@
 					if(this.areas[r].tooltip){
 						t = '';
 						if(typeof tkey==="string") t = (tkey in this.mapping.hexes[r] ? this.mapping.hexes[r][tkey] : "");
-						else t =	this.mapping.hexes[r].Tooltip||this.mapping.hexes[r].tooltip||this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl||"";
+						else t = this.mapping.hexes[r].Tooltip||this.mapping.hexes[r].tooltip||this.mapping.hexes[r].n||this.mapping.hexes[r].msoa_name_hcl||"";
 						this.areas[r].tooltip.innerHTML = this.options.formatTooltip(t,{'x':this.areas[r].pos.x||null,'y':this.areas[r].pos.y||null,'hex':this.mapping.hexes[r],'size':this.properties.size,'font-size':parseFloat(this.style.default['font-size'])});
 					}
 				}
@@ -399,7 +399,7 @@
 			if(typeof fn!=="function"){
 				fn = function(){
 					var fill = this.style['default'].fill;
-					if(_obj.mapping.hexes[r].colour) fill = _obj.mapping.hexes[r].colour;					
+					if(_obj.mapping.hexes[r].colour) fill = _obj.mapping.hexes[r].colour;
 					if(typeof attr.colours==="string") fill = attr.colours;
 					return fill;
 				};
@@ -424,7 +424,7 @@
 			return this;
 		};
 
-		this.draw = function(){			
+		this.draw = function(){
 
 			var events = {
 				'mouseover': function(e){ if(e.data.region){ e.data.hexmap.regionFocus(e.data.region); } ev(e,'mouseover'); },
@@ -562,7 +562,7 @@
 	function Hexagon(q,r,layout){
 		if(!layout) layout = "odd-r";
 		var _side,_sep,_short,_hexpath,_half;
-		_side = 60;	// The length of a hexagon side
+		_side = 60; // The length of a hexagon side
 		_half = _side/2;
 		_sep = _side*1.5;
 		_short = parseFloat(Math.round(_side*Math.cos(Math.PI/6)).toFixed(1));
@@ -617,7 +617,7 @@
 						var hexclip = path.cloneNode(true);
 						clip.classList.add('hover');
 						add(hexclip,clip);
-						add(clip,defs);	
+						add(clip,defs);
 						this.clip = clip;
 						setAttr(label,{'clip-path':'url(#'+clipid+')'});
 					}
