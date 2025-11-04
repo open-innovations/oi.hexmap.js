@@ -2,8 +2,8 @@
 	Open Innovations hex map in SVG v0.8.3
  */
 (function(root){
-
-	var OI = root.OI || {};
+	const ns = 'http://www.w3.org/2000/svg';
+	const OI = root.OI || {};
 	if(!OI.ready){
 		OI.ready = function(fn){
 			// Version 1.1
@@ -29,7 +29,7 @@
 		this._attr = attr;
 		this.title = "OI HexMap";
 		this.logging = (location.search.indexOf('debug=true') >= 0);
-		var log = new Log({"title":"OI HexMap","version":this.version});
+		const log = new Log({"title": "OI HexMap", "version": this.version});
 		this.log = log.message;
 
 		if(!el){
@@ -44,35 +44,35 @@
 		if(typeof attr.label.clip!=="boolean") attr.label.clip = false;
 		if(typeof attr.grid.show!=="boolean") attr.grid.show = false;
 
-		var wide = attr.width || el.offsetWidth || 300;
-		var tall = attr.height || el.offsetHeight || 150;
+		let wide = attr.width || el.offsetWidth || 300;
+		let tall = attr.height || el.offsetHeight || 150;
 		this.maxw = wide;
 		this.maxh = tall;
-		var aspectratio = wide/tall;
-		var constructed = false;
-		var svg,hexes,lines,overlay,datalayer,grid;
-		var range = {};
-		var fs = parseFloat(getComputedStyle(el)['font-size'])||16;
-		var hovered = null;
+		const aspectratio = wide / tall;
+		let constructed = false;
+		let svg, hexes, lines, overlay, datalayer, grid;
+		const range = {};
+		const fs = parseFloat(getComputedStyle(el)['font-size']) || 16;
+		let hovered = null;
 		this.areas = {};
 		this.padding = (typeof attr.padding==="number" ? attr.padding : 0);
 		this.properties = { 'size': attr.size };
 		this.callback = {};
 		this.mapping = {};
-		var _obj = this;
+		const _obj = this;
 
 		el.classList.add('oi-viz','oi-map','oi-map-hex');
 		
 		// Add an inner element
 		if(!el.querySelector('.hexmap-inner')){
-			var otop = document.createElement('div');
+			const otop = document.createElement('div');
 			otop.classList.add('oi-top');
 			otop.innerHTML = '<div class="oi-left"></div><div class="oi-right"></div>';
 			add(otop,el);
-			var holder = document.createElement('div');
+			const holder = document.createElement('div');
 			holder.classList.add('oi-map-holder');
 			add(holder,el);
-			var obot = document.createElement('div');
+			const obot = document.createElement('div');
 			obot.classList.add('oi-bottom');
 			obot.innerHTML = '<div class="oi-left"></div><div class="oi-right"></div>';
 			add(obot,el);
@@ -97,7 +97,7 @@
 			'grid': { 'fill': '#aaa','fill-opacity':0.1 }
 		};
 
-		for(var s in attr.style){
+		for(const s in attr.style){
 			if(attr.style[s]){
 				if(!this.style[s]) this.style[s] = {};
 				if(typeof attr.style[s].fill==="string") this.style[s].fill = attr.style[s].fill;
@@ -140,7 +140,7 @@
 			if(this.mapping.layout){
 				if(data.layout == this.mapping.layout){
 					// We want to add the hexagons and rebuild the map
-					for(var r in data.hexes) this.mapping.hexes[r] = data.hexes[r];
+					for(const r in data.hexes) this.mapping.hexes[r] = data.hexes[r];
 					data = this.mapping;
 				}else this.log('warn','Layout has changed so over-writing existing hexes.');
 			}
@@ -151,7 +151,7 @@
 		addEvent('resize',window,{},function(event){ _obj.size(); });
 
 		this.setHexStyle = function(r){
-			var h,style,cls,p;
+			let h, style, cls, p;
 			h = this.areas[r];
 			style = clone(this.style['default']);
 			cls = "";
@@ -169,7 +169,7 @@
 		};
 
 		this.toFront = function(r){
-			var outline = this.areas[r].hex.cloneNode(true);
+			const outline = this.areas[r].hex.cloneNode(true);
 			if(this.areas[r] && this.areas[r].hex) add(this.areas[r].hex,hexes);
 			if(outline.querySelector('text')) outline.querySelector('text').remove();
 			if(outline.querySelector('title')) outline.querySelector('title').remove();
@@ -184,7 +184,7 @@
 
 		this.regionToggleSelected = function(r,others){
 			this.selected = (this.selected==r) ? "" : r;
-			var region,h;
+			let region, h;
 			h = this.areas[r];
 			h.selected = !h.selected;
 			this.setHexStyle(r);
@@ -237,7 +237,7 @@
 
 		this.selectRegion = function(r){
 			this.selected = r;
-			for(var region in this.areas){
+			for(const region in this.areas){
 				if(this.areas[region]){
 					if(r.length > 0 && region.indexOf(r)==0){
 						this.areas[region].selected = true;
@@ -253,7 +253,7 @@
 
 		this.setClass = function(fn){
 			if(typeof fn==="function"){
-				for(var region in this.areas){
+				for(const region in this.areas){
 					fn.call(this,region,this.areas[region]);
 				}
 			}
@@ -301,8 +301,8 @@
 				overlay.classList.add('overlay');
 			}
 			setAttr(svg,{'style':'width:'+w+'px;max-width: 100%; max-height: 100%; margin: auto; background: none;'});
-			var scale = w/wide;
 
+			const scale = w / wide;
 			this.properties.size = attr.size*scale;
 			wide = w;
 			tall = h;
@@ -314,7 +314,7 @@
 
 		this.initialized = function(){
 			this.create().draw();
-			var spin = el.querySelector('.spinner');
+			const spin = el.querySelector('.spinner');
 			if(spin) spin.parentNode.removeChild(spin);
 			return this;
 		};
@@ -331,7 +331,7 @@
 		this.setMapping = function(mapping){
 			this.mapping = mapping;
 			if(!this.properties) this.properties = { "x": 100, "y": 100 };
-			var p = mapping.layout.split("-");
+			const p = mapping.layout.split("-");
 			this.properties.shift = p[0];
 			this.properties.orientation = p[1];
 
@@ -339,7 +339,7 @@
 		};
 
 		this.estimateSize = function(){
-			var s,nx,ny,dx,dy;
+			let s, nx, ny, dx, dy;
 			if(this.properties.orientation=="r"){
 				if(range.r.d == 0){
 					nx = range.q.d + 1;
@@ -371,7 +371,7 @@
 		};
 
 		this.updateLabels = function(lkey,tkey){
-			var r,l,t;
+			let r, l, t;
 			for(r in this.areas){
 				if(this.mapping.hexes[r]){
 					this.areas[r]._lkey = lkey;
@@ -395,10 +395,10 @@
 		};
 
 		this.updateColours = function(fn){
-			var r;
+			let r;
 			if(typeof fn!=="function"){
 				fn = function(){
-					var fill = this.style['default'].fill;
+					let fill = this.style['default'].fill;
 					if(_obj.mapping.hexes[r].colour) fill = _obj.mapping.hexes[r].colour;
 					if(typeof attr.colours==="string") fill = attr.colours;
 					return fill;
@@ -414,7 +414,7 @@
 		};
 		
 		this.updateBoundaries = function(fn){
-			var props,n;
+			let props, n;
 			if(typeof fn!=="function") fn = function(){ return {'stroke':'black','stroke-width':1}; };
 			for(n in this.mapping.boundaries){
 				props = fn.call(this,n,this.mapping.boundaries[n])||{};
@@ -426,13 +426,13 @@
 
 		this.draw = function(){
 
-			var events = {
 				'mouseover': function(e){ if(e.data.region){ e.data.hexmap.regionFocus(e.data.region); } ev(e,'mouseover'); },
 				'mouseout': function(e){ ev(e,'mouseout'); },
 				'click': function(e){ if(e.data.region){ e.data.hexmap.regionFocus(e.data.region); } ev(e,'click'); }
+			const events = {
 			};
 
-			var _obj,defs,id,r;
+			let _obj, defs, id, r;
 			_obj = this;
 			defs = svgEl('defs');
 			add(defs,svg);
@@ -490,7 +490,7 @@
 		
 		this.fitToRange = function(){
 
-			var dx,dy,w,h,extent,r;
+			let dx, dy, w, h, extent, r;
 			extent = new Extent();
 			for(r in this.areas) extent.extend(this.areas[r]);
 
@@ -521,7 +521,7 @@
 				}
 
 				lines.innerHTML = "";
-				var n,s,d,boundaries,prevedge,edge,join;
+				let n, s, d, boundaries, prevedge, edge, join;
 				this.lines = {};
 				boundaries = this.mapping.boundaries;
 				for(n in boundaries){
@@ -561,7 +561,7 @@
 
 	function Hexagon(q,r,layout){
 		if(!layout) layout = "odd-r";
-		var _side,_sep,_short,_hexpath,_half;
+		let _side, _sep, _short, _hexpath, _half;
 		_side = 60; // The length of a hexagon side
 		_half = _side/2;
 		_sep = _side*1.5;
@@ -569,7 +569,7 @@
 		if(layout.indexOf('-r')>0) _hexpath = 'm0-'+_side+'l'+_short+','+_half+',0,'+_side+',-'+_short+','+_half+',-'+_short+'-'+_half+',0-'+_side+','+_short+'-'+_half+'z';
 		else _hexpath = 'm'+_half+'-'+_short+'l'+_half+' '+_short+',-'+_half+' '+_short+',-'+_side+' 0,-'+_half+' -'+_short+','+_half+' -'+_short+','+_side+' 0z';
 		this.set = function(el,attr,hexmap){
-			var label,defs,g,path,tt,p;
+			let label, defs, g, path, tt, p;
 			defs = el.querySelector('svg defs');
 			q = attr.q;
 			r = attr.r;
@@ -606,15 +606,15 @@
 					add(label,g);
 					setAttr(label,{'dominant-baseline':'central','data-q':attr.q,'data-r':attr.r,'class':'hex-label','text-anchor':'middle','font-size':_half+'px','title':(attr.n || r)});
 					if(hexmap.options.clip){
-						var clipid = (el.getAttribute('id')||'hex')+'-clip-'+r;
-						var clip = document.getElementById(clipid);
+						const clipid = (el.getAttribute('id') || 'hex') + '-clip-' + r;
+						let clip = document.getElementById(clipid);
 						if(!clip){
 							clip = svgEl('clipPath');
 							clip.id = clipid;
 						}else{
 							clip.innerHTML = "";
 						}
-						var hexclip = path.cloneNode(true);
+						const hexclip = path.cloneNode(true);
 						clip.classList.add('hover');
 						add(hexclip,clip);
 						add(clip,defs);
@@ -629,7 +629,7 @@
 			return this;
 		};
 		this.getXY = function(){
-			var x,y;
+			let x, y;
 			if(layout=="odd-r"){
 				x = q*_short*2 + (r&1==1 ? _short : 0);
 				y = -r*_sep;
@@ -646,7 +646,7 @@
 			return {x:x,y:y};
 		};
 		this.getEdge = function(edge){
-			var x,y,p,edges,positive,e,ed,cs,ss;
+			let x, y, p, edges, positive, e, ed, cs, ss;
 
 			ed = Math.abs(edge);
 			positive = (edge >= 0);
@@ -695,8 +695,8 @@
 		};
 		this.getPath = function(){ return _hexpath; };
 		this.addPattern = function(el,id,lay,x,y){
-			var defs = el.querySelector('defs');
-			var p = document.getElementById(id);
+			const defs = el.querySelector('defs');
+			let p = document.getElementById(id);
 			if(!p){
 				p = svgEl("pattern");
 				setAttr(p,{'id':id,'patternUnits':'userSpaceOnUse'});
@@ -733,9 +733,9 @@
 		if(!opt.title) opt.title = "Log";
 		if(!opt.version) opt.version = "2.0";
 		this.message = function(...args){
-			var t = args.shift();
+			let t = args.shift();
 			if(typeof t!=="string") t = "log";
-			var ext = ['%c'+opt.title+' '+opt.version+'%c'];
+			let ext = ['%c' + opt.title + ' ' + opt.version + '%c'];
 			if(args.length > 0){
 				ext[0] += ':';
 				if(typeof args[0]==="string") ext[0] += ' '+args.shift();
@@ -749,11 +749,10 @@
 	}
 
 	// Helper functions
-	var ns = 'http://www.w3.org/2000/svg';
 	function add(el,to){ return to.appendChild(el); }
 	function clone(a){ return JSON.parse(JSON.stringify(a)); }
 	function setAttr(el,prop){
-		for(var p in prop){
+		for(const p in prop){
 			if(typeof prop[p]!=="undefined") el.setAttribute(p,prop[p]);
 		}
 		return el;
@@ -773,10 +772,10 @@
 		}
 	}
 	function ev(e,t){
-		var rtn = [];
+		const rtn = [];
 		if(e.data.hexmap.callback[t]){
-			for(var c = 0; c < e.data.hexmap.callback[t].length; c++){
-				for(var a in e.data.hexmap.callback[t][c].attr){
+			for(let c = 0; c < e.data.hexmap.callback[t].length; c++){
+				for(const a in e.data.hexmap.callback[t][c].attr){
 					if(e.data.hexmap.callback[t][c].attr[a]) e.data[a] = e.data.hexmap.callback[t][c].attr[a];
 				}
 				if(typeof e.data.hexmap.callback[t][c].fn==="function") rtn.push(e.data.hexmap.callback[t][c].fn.call(e.data['this']||this,e));
