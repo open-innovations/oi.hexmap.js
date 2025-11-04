@@ -339,7 +339,7 @@
 		};
 
 		this.estimateSize = function(){
-			let s, nx, ny, dx, dy;
+			let nx, ny, dx, dy;
 			if(this.properties.orientation=="r"){
 				if(range.r.d == 0){
 					nx = range.q.d + 1;
@@ -363,7 +363,6 @@
 				dy = ny*2;
 				return Math.min(wide/dx,(2/Math.sqrt(3))*tall/dy);
 			}
-			return s;
 		};
 
 		this.getEdge = function(h){
