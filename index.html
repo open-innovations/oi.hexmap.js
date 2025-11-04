@@ -153,7 +153,7 @@
 			<div id="hero">
 			</div>
 			<script>
-				var c = ["#2254F4","#178CFF","#00B6FF","#08DEF9","#1DD3A7","#0DBC37","#67E767","#722EA5","#E6007C","#EF3AAB","#D73058","#D60303","#FF6700","#F9BC26"];
+				const c = ["#2254F4", "#178CFF", "#00B6FF", "#08DEF9", "#1DD3A7", "#0DBC37", "#67E767", "#722EA5", "#E6007C", "#EF3AAB", "#D73058", "#D60303", "#FF6700", "#F9BC26"];
 				// Create a HexJSON to fill the space
 				hexjson = {"layout":"odd-r","hexes":{}};
 				for(q = 0; q<22; q++){
@@ -243,8 +243,8 @@
 									tspans = '<tspan class="off">'+txt.substring(0,3)+'</tspan>';
 									lines = txt.split(/ /);
 									lines.push(attr.hex.pop.toLocaleString());
-									var lineheight = attr['line-height']||(attr['font-size']*1.5);
-									for(var i = 0; i < lines.length; i++){
+									const lineheight = attr['line-height'] || (attr['font-size'] * 1.5);
+									for(let i = 0; i < lines.length; i++){
 										tspans += '<tspan class="on'+(i==lines.length-1 ? ' big':'')+'" y="'+((i-lines.length/2+0.5)*lineheight).toFixed(3)+'" x="0">'+lines[i]+'</tspan>';
 									}
 									return tspans;
@@ -336,7 +336,7 @@
 
 						// Make a tooltip
 						hex.on('mouseover',function(e){
-							var svg,tip,bb,bbo,hex;
+							let svg, tip, bb, bbo, hex;
 							svg = e.data.hexmap.el;
 							hex = e.target;
 							// Get any existing tooltip for this hexmap
@@ -384,12 +384,12 @@
 					OI.ready(function(){
 						// Define a colour scale helper function
 						function ColourScale(c){
-							var s,n;
+							let s, n;
 							s = c;
 							n = s.length;
 							// Get a colour given a value, and the range minimum/maximum
 							this.getValue = function(v,min,max){
-								var c,a,b;
+								let c, a, b;
 								v = (v-min)/(max-min);
 								if(v<0) return 'rgb('+s[0].rgb.join(',')+')';
 								if(v>=1) return 'rgb('+s[n-1].rgb.join(',')+')';
@@ -416,15 +416,15 @@
 							'hexjson':'resources/constituencies.hexjson',
 							// Once we've loaded the map the ready function is called
 							'ready':function(){
-								var url = 'resources/2017-9.json';
+								const url = 'resources/2017-9.json';
 								// Load the data
 								fetch(url)
 								.then(function(response){ return response.json(); })
 								.then(function(data){
 									// Process the data file to find the minimum and maximum
-									var min = 1e100;
-									var max = -1e100;
-									for(var r in data){
+									let min = 1e100;
+									let max = -1e100;
+									for(const r in data){
 										min = Math.min(data[r],min);
 										max = Math.max(data[r],max);
 									}
@@ -447,7 +447,7 @@
 
 						// Make a tooltip
 						hex.on('mouseover',function(e){
-							var svg,tip,bb,bbo,hex;
+							let svg, tip, bb, bbo, hex;
 							svg = e.data.hexmap.el;
 							hex = e.target;
 							// Get any existing tooltip for this hexmap
@@ -496,12 +496,12 @@
 					OI.ready(function(){
 						// Define a colour scale helper function
 						function ColourScale(c){
-							var s,n;
+							let s, n;
 							s = c;
 							n = s.length;
 							// Get a colour given a value, and the range minimum/maximum
 							this.getValue = function(v,min,max){
-								var c,a,b;
+								let c, a, b;
 								v = (v-min)/(max-min);
 								if(v<0) return 'rgb('+s[0].rgb.join(',')+')';
 								if(v>=1) return 'rgb('+s[n-1].rgb.join(',')+')';
@@ -528,7 +528,7 @@
 							// Once we've loaded the map the ready function is called
 							'ready':function(d){
 								// Process the data to find the minimum and maximum
-								var q,r,min = Infinity, max = -Infinity;
+								let q, r, min = Infinity, max = -Infinity;
 								for(r in this.areas){
 									q = this.areas[r].data.q;
 									min = Math.min(q,min);
@@ -546,7 +546,7 @@
 
 						// Make a tooltip
 						hex.on('mouseover',function(e){
-							var svg,tip,bb,bbo,hex;
+							let svg, tip, bb, bbo, hex;
 							svg = e.data.hexmap.el;
 							hex = e.target;
 							// Get any existing tooltip for this hexmap
@@ -634,10 +634,10 @@
 							'label': {
 								'show': true,
 								'format': function(txt,attr){
-									var tspans = '';
+									let tspans = '';
 									lines = (txt) ? [txt] : [];
 									lines = lines.concat(attr.hex.label.split(/<br ?\/?>/));
-									for(var i = 0; i < lines.length; i++){
+									for(let i = 0; i < lines.length; i++){
 										tspans += '<tspan class="'+(txt && i==0 ? 'id':'name')+'" y="'+((i-lines.length/2+0.5)*(attr['font-size']*1.5)).toFixed(3)+'" x="0">'+lines[i].replace(/<sup>/g,'<tspan dy="-4" font-size="60%">').replace(/<\/sup>/g,'</tspan><tspan dy="4"> </tspan>')+'</tspan>';
 									}
 									return tspans;
