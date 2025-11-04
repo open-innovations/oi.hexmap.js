@@ -426,10 +426,22 @@
 
 		this.draw = function(){
 
-				'mouseover': function(e){ if(e.data.region){ e.data.hexmap.regionFocus(e.data.region); } ev(e,'mouseover'); },
-				'mouseout': function(e){ ev(e,'mouseout'); },
-				'click': function(e){ if(e.data.region){ e.data.hexmap.regionFocus(e.data.region); } ev(e,'click'); }
 			const events = {
+				'mouseover': function (e) {
+					if (e.data.region) {
+						e.data.hexmap.regionFocus(e.data.region);
+					}
+					ev(e, 'mouseover');
+				},
+				'mouseout': function (e) {
+					ev(e, 'mouseout');
+				},
+				'click': function (e) {
+					if (e.data.region) {
+						e.data.hexmap.regionFocus(e.data.region);
+					}
+					ev(e, 'click');
+				}
 			};
 
 			let _obj, defs, id, r;
