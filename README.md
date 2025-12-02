@@ -4,6 +4,11 @@ Making hexmaps
 
 ## Changelog
 
+* 0.8.4:
+    - Whitespace changes
+    - Variable declarations switched to let/const
+    - Erased some redundant CSS
+    - Updated `.substr` to `.substring`
 * 0.8.3:
 	- Use patterns for grid
 	- Overhaul positioning
