@@ -1,5 +1,5 @@
 /**
-	Open Innovations hex map in SVG v0.8.3
+	Open Innovations hex map in SVG v0.8.4
  */
 (function(root){
 	const ns = 'http://www.w3.org/2000/svg';
@@ -24,7 +24,7 @@
 	//			size: the size of a hexagon in pixels
 	function HexMap(el,attr){
 
-		this.version = "0.8.3";
+		this.version = "0.8.4";
 		if(!attr) attr = {};
 		this._attr = attr;
 		this.title = "OI HexMap";
