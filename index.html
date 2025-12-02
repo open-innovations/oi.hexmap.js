@@ -69,8 +69,8 @@
 
 	/* Main site styling */
 	html, body {
-		padding: 0px;
-		margin: 0px;
+		padding: 0;
+		margin: 0;
 		min-height: 100%!important;
 		height: 100%!important;
 		background-color: #ffffff;
@@ -80,7 +80,7 @@
 		line-height: 1.44em;
 	}
 	h1,h2,h3,h4 { font-family: Poppins; line-height: 1em; }
-	h1 { font-size: 2em; margin-top: 0em; }
+	h1 { font-size: 2em; margin-top: 0; }
 	h2 { font-size: 1.7em; margin-top: 1.7647058823529411em; font-weight: 500; }
 	h3 { font-size: 1.4em; margin-top: 1.428571em; }
 	h4 { font-size: 1.2em; margin-bottom: 0.2em; }
@@ -89,10 +89,10 @@
 	.holder { position: relative; width: 1080px; max-width: 100%; margin: auto; }
 	.padded { padding: 1em; }
 	h1:first-child, h2:first-child, h3:first-child { margin-top: 0; }
-	footer { width: 100%; padding: 1em; padding-bottom: 3em; }
+	footer { width: 100%; padding: 1em 1em 3em; }
 	footer a, footer a:visited { color: inherit; }
 	code, pre { font-family: monospace; color: #555555; background-color: #efefef; padding: 0.125em 0.25em; }
-	button, .button { border: 0px; font-size: 1em; background-color: #efefef; color: black; text-decoration: none!important; display: inline-block; padding: 0.5em 1em; cursor: pointer; vertical-align: top; line-height: 1.25em; }
+	button, .button { border: 0; font-size: 1em; background-color: #efefef; color: black; text-decoration: none!important; display: inline-block; padding: 0.5em 1em; cursor: pointer; vertical-align: top; line-height: 1.25em; }
 	.prettyprint {
 		background: #efefef;
 		padding: 1em;
@@ -120,7 +120,7 @@
 		color: #999;
 	}
 	figure:hover figcaption { color: inherit; }
-	ol { margin:1rem 0; margin-left: 1.5rem; }
+	ol { margin: 1rem 0 1rem 1.5rem; }
 	</style>
 </head>
 <body class="b6-bg">
@@ -146,15 +146,14 @@
 			<style>
 			#hero {
 				width: 100%;
-				margin-top: 200px;
-				margin-top: 1em;
+                margin-top: 1em;
 				overflow: hidden;
 			}
 			</style>
 			<div id="hero">
 			</div>
 			<script>
-				var c = ["#2254F4","#178CFF","#00B6FF","#08DEF9","#1DD3A7","#0DBC37","#67E767","#722EA5","#E6007C","#EF3AAB","#D73058","#D60303","#FF6700","#F9BC26"];
+				const c = ["#2254F4", "#178CFF", "#00B6FF", "#08DEF9", "#1DD3A7", "#0DBC37", "#67E767", "#722EA5", "#E6007C", "#EF3AAB", "#D73058", "#D60303", "#FF6700", "#F9BC26"];
 				// Create a HexJSON to fill the space
 				hexjson = {"layout":"odd-r","hexes":{}};
 				for(q = 0; q<22; q++){
@@ -241,11 +240,11 @@
 								//		* y - the vertical position in pixels
 								//		* hex - the hexagon's HexJSON properties
 								'format': function(txt,attr){
-									tspans = '<tspan class="off">'+txt.substr(0,3)+'</tspan>';
+									tspans = '<tspan class="off">'+txt.substring(0,3)+'</tspan>';
 									lines = txt.split(/ /);
 									lines.push(attr.hex.pop.toLocaleString());
-									var lineheight = attr['line-height']||(attr['font-size']*1.5);
-									for(var i = 0; i < lines.length; i++){
+									const lineheight = attr['line-height'] || (attr['font-size'] * 1.5);
+									for(let i = 0; i < lines.length; i++){
 										tspans += '<tspan class="on'+(i==lines.length-1 ? ' big':'')+'" y="'+((i-lines.length/2+0.5)*lineheight).toFixed(3)+'" x="0">'+lines[i]+'</tspan>';
 									}
 									return tspans;
@@ -310,7 +309,7 @@
 						#hexmap3b .hex text { display: none; }
 					}
 					#hexmap3b .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.5rem; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
-					#hexmap3b .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
+					#hexmap3b .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0; transform: translate3d(-50%,-100%,0); border-bottom-color: black; }
 					</style>
 					<figure>
 						<div id="hexmap3b"></div>
@@ -337,7 +336,7 @@
 
 						// Make a tooltip
 						hex.on('mouseover',function(e){
-							var svg,tip,bb,bbo,hex;
+							let svg, tip, bb, bbo, hex;
 							svg = e.data.hexmap.el;
 							hex = e.target;
 							// Get any existing tooltip for this hexmap
@@ -375,7 +374,7 @@
 						#hexmap3 .hex-label { display: none; }
 					}
 					#hexmap3 .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.5rem; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
-					#hexmap3 .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
+					#hexmap3 .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0; transform: translate3d(-50%,-100%,0); border-bottom-color: black; }
 					</style>
 					<figure>
 						<div id="hexmap3"></div>
@@ -385,12 +384,12 @@
 					OI.ready(function(){
 						// Define a colour scale helper function
 						function ColourScale(c){
-							var s,n;
+							let s, n;
 							s = c;
 							n = s.length;
 							// Get a colour given a value, and the range minimum/maximum
 							this.getValue = function(v,min,max){
-								var c,a,b;
+								let c, a, b;
 								v = (v-min)/(max-min);
 								if(v<0) return 'rgb('+s[0].rgb.join(',')+')';
 								if(v>=1) return 'rgb('+s[n-1].rgb.join(',')+')';
@@ -417,15 +416,15 @@
 							'hexjson':'resources/constituencies.hexjson',
 							// Once we've loaded the map the ready function is called
 							'ready':function(){
-								var url = 'resources/2017-9.json';
+								const url = 'resources/2017-9.json';
 								// Load the data
 								fetch(url)
 								.then(function(response){ return response.json(); })
 								.then(function(data){
 									// Process the data file to find the minimum and maximum
-									var min = 1e100;
-									var max = -1e100;
-									for(var r in data){
+									let min = 1e100;
+									let max = -1e100;
+									for(const r in data){
 										min = Math.min(data[r],min);
 										max = Math.max(data[r],max);
 									}
@@ -448,7 +447,7 @@
 
 						// Make a tooltip
 						hex.on('mouseover',function(e){
-							var svg,tip,bb,bbo,hex;
+							let svg, tip, bb, bbo, hex;
 							svg = e.data.hexmap.el;
 							hex = e.target;
 							// Get any existing tooltip for this hexmap
@@ -487,7 +486,7 @@
 						#hexmap3c .hex .hex-label { display: none; }
 					}
 					#hexmap3c .tooltip { position: absolute; text-align: center; background: black; color: white; padding: 0.5rem; transform: translate3d(-50%,50%,0); transition: left 0.1s linear, top 0.1s linear; border-radius: 4px; }
-					#hexmap3c .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0%; transform: translate3d(-50%,-100%,0); border-color: transparent; border-bottom-color: black; }
+					#hexmap3c .tooltip::after { content: ""; position: absolute; bottom: auto; width: 0; height: 0; border: 0.5em solid transparent; left: 50%; top: 0; transform: translate3d(-50%,-100%,0); border-bottom-color: black; }
 					</style>
 					<figure>
 						<div id="hexmap3c"></div>
@@ -497,12 +496,12 @@
 					OI.ready(function(){
 						// Define a colour scale helper function
 						function ColourScale(c){
-							var s,n;
+							let s, n;
 							s = c;
 							n = s.length;
 							// Get a colour given a value, and the range minimum/maximum
 							this.getValue = function(v,min,max){
-								var c,a,b;
+								let c, a, b;
 								v = (v-min)/(max-min);
 								if(v<0) return 'rgb('+s[0].rgb.join(',')+')';
 								if(v>=1) return 'rgb('+s[n-1].rgb.join(',')+')';
@@ -529,7 +528,7 @@
 							// Once we've loaded the map the ready function is called
 							'ready':function(d){
 								// Process the data to find the minimum and maximum
-								var q,r,min = Infinity, max = -Infinity;
+								let q, r, min = Infinity, max = -Infinity;
 								for(r in this.areas){
 									q = this.areas[r].data.q;
 									min = Math.min(q,min);
@@ -547,7 +546,7 @@
 
 						// Make a tooltip
 						hex.on('mouseover',function(e){
-							var svg,tip,bb,bbo,hex;
+							let svg, tip, bb, bbo, hex;
 							svg = e.data.hexmap.el;
 							hex = e.target;
 							// Get any existing tooltip for this hexmap
@@ -635,10 +634,10 @@
 							'label': {
 								'show': true,
 								'format': function(txt,attr){
-									var tspans = '';
+									let tspans = '';
 									lines = (txt) ? [txt] : [];
 									lines = lines.concat(attr.hex.label.split(/<br ?\/?>/));
-									for(var i = 0; i < lines.length; i++){
+									for(let i = 0; i < lines.length; i++){
 										tspans += '<tspan class="'+(txt && i==0 ? 'id':'name')+'" y="'+((i-lines.length/2+0.5)*(attr['font-size']*1.5)).toFixed(3)+'" x="0">'+lines[i].replace(/<sup>/g,'<tspan dy="-4" font-size="60%">').replace(/<\/sup>/g,'</tspan><tspan dy="4"> </tspan>')+'</tspan>';
 									}
 									return tspans;
